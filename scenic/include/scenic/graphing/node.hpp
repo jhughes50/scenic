@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "scenic/core/edge.hpp"
+#include "scenic/graphing/edge.hpp"
 #include "scenic/utils/geostructs.hpp"
 
 namespace Scenic

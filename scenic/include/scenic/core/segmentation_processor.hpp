@@ -26,7 +26,7 @@ struct SegmentationOutput : public SegmentationInput
     std::vector<cv::Mat> heatmaps;
 };
 
-class SegmentationProcessor : ThreadedProcessor<SegmentationInput>
+class SegmentationProcessor : public ThreadedProcessor<SegmentationInput>
 {
     public:
         SegmentationProcessor() = default;

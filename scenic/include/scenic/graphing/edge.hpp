@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "scenic/core/node.hpp"
+#include "scenic/graphing/node.hpp"
 
 namespace Scenic
 {

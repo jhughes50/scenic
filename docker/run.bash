@@ -8,6 +8,7 @@ docker run -it --rm \
     -v "/dev:/dev" \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v "`pwd`/../clipper/cpp:/home/`whoami`/clipper" \
+    -v "`pwd`/../glider/glider:/home/`whoami`/glider" \
     -v "`pwd`/../scenic:/home/`whoami`/scenic" \
     -e DISPLAY=$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \

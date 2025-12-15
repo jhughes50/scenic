@@ -5,7 +5,7 @@
 * @About kmeans clustering
 */
 
-#include "scenic/core/kmeans.hpp"
+#include "scenic/graphing/kmeans.hpp"
 
 using namespace Scenic;
 

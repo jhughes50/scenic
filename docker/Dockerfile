@@ -39,7 +39,6 @@ USER $USER
 
 RUN sudo apt-get update \
  && sudo apt-get install -y --no-install-recommends \
- libeigen3-dev \
  libgoogle-glog-dev \
  libopencv-dev \
  libtbb-dev \
@@ -55,6 +54,32 @@ RUN python3 -m venv lang \
 RUN lang/bin/pip3 install matplotlib
 
 RUN sudo apt install -y ipython3
+
+# install ROS
+USER root
+RUN apt-get update \
+  && export TZ="America/New_York" \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y keyboard-configuration \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
+  && ln -fs "/usr/share/zoneinfo/$TZ" /etc/localtime \
+  && dpkg-reconfigure --frontend noninteractive tzdata \
+  && apt-get clean
+
+RUN sudo apt install -y software-properties-common \
+  && sudo add-apt-repository universe
+
+RUN export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')\
+  && curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" \
+  && sudo apt install /tmp/ros2-apt-source.deb \
+  && sudo apt update \
+  && sudo apt install -y ros-dev-tools
+
+RUN sudo apt update \
+  && sudo apt install -y ros-jazzy-desktop-full
+
+RUN sudo apt install -y ros-jazzy-gtsam
+USER $USER
 
 ENV CUDA_HOME=/usr/local/cuda
 RUN sudo chown $USER:$USER .bashrc \
