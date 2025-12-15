@@ -1,0 +1,3 @@
+[submodule "clipper"]
+	path = clipper
+	url = https://github.com/jhughes50/clipper
