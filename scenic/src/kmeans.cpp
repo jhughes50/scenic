@@ -7,7 +7,7 @@
 
 #include "scenic/core/kmeans.hpp"
 
-using namespace scenic;
+using namespace Scenic;
 
 KMeansOutput KMeans::operator()(const cv::Mat mask, int k)
 {
