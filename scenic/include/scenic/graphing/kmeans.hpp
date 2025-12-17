@@ -27,5 +27,7 @@ struct KMeansOutput
 struct KMeans
 {
     KMeansOutput operator()(const cv::Mat mask, int k);
+    std::unordered_map<int, std::unordered_set<int>> findAdjacentRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k);
+    int getNumRegions(); // TODO
 };
 }

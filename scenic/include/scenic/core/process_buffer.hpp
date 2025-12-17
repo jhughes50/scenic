@@ -60,7 +60,6 @@ class ProcessBuffer
         mutable std::mutex mutex_;
 
     private:
-        //use polymorphism on Frame
         std::vector<std::unique_ptr<F>> buffer_;
         size_t capacity_;
         size_t head_;
@@ -84,8 +83,7 @@ void ProcessBuffer<F>::push(const F frame, Access a)
 {
     if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
 
-    //buffer_[tail_] = std::make_unique<Frame>(frame);
-    buffer_[tail_] = frame.clone();
+    buffer_[tail_] = std::make_unique<F>(frame);
     tail_ = (tail_ + 1) % capacity_;
 
     if (size_ < capacity_)

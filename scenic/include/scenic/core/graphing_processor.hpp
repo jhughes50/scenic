@@ -7,25 +7,23 @@
 
 #include <opencv2/opencv.hpp>
 
+#include "scenic/graphing/graph.hpp"
 #include "scenic/core/threaded_processor.hpp"
+#include "scenic/core/processor_inputs.hpp"
 
 namespace Scenic
 {
-struct GraphInput
-{
-    cv::Mat image;
-};
 
-class GraphingProcessor : ThreadedProcessor<GraphInput>
+class GraphingProcessor : ThreadedProcessor<GraphingInput>
 {
     public:
         GraphingProcessor() = default;
         GraphingProcessor(size_t capacity);
 
-        void setCallback(std::function<void(std::shared_ptr<GraphInput>)> callback);
+        void setCallback(std::function<void(std::shared_ptr<ScenicGraph>)> callback);
 
     private:
         void processBuffer() override;
-        std::function<void(std::shared_ptr<GraphInput>)> outputCallback;
+        std::function<void(std::shared_ptr<ScenicGraph>)> outputCallback;
 };
 } // namespace Scenic

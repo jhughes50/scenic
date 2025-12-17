@@ -10,22 +10,10 @@
 #include <clipper/clipper_model.hpp>
 
 #include "scenic/core/threaded_processor.hpp"
+#include "scenic/core/processor_inputs.hpp"
 
 namespace Scenic
 {
-
-struct SegmentationInput 
-{
-    cv::Mat image;
-    std::vector<std::string> texts;
-};
-
-struct SegmentationOutput : public SegmentationInput
-{
-    std::vector<cv::Mat> logits;
-    std::vector<cv::Mat> heatmaps;
-};
-
 class SegmentationProcessor : public ThreadedProcessor<SegmentationInput>
 {
     public:
@@ -33,7 +21,7 @@ class SegmentationProcessor : public ThreadedProcessor<SegmentationInput>
         SegmentationProcessor(size_t capacity, const std::string& model_path, const std::string& config_path);
 
         void setTextInputs(std::vector<std::string> t);
-        void setCallback(std::function<void(std::shared_ptr<SegmentationOutput>)> callback);
+        void setCallback(std::function<void(std::shared_ptr<GraphingInput>)> callback);
 
     private:
         void processBuffer() override;
@@ -41,8 +29,7 @@ class SegmentationProcessor : public ThreadedProcessor<SegmentationInput>
         Clipper::ClipperModel model_;
         Clipper::ClipperProcessor processor_;
 
-        std::vector<std::string> texts_;
-
-        std::function<void(std::shared_ptr<SegmentationOutput>)> outputCallback;
+        // we output the input to the graphing thread
+        std::function<void(std::shared_ptr<GraphingInput>)> outputCallback;
 };
 } //namespace Scenic

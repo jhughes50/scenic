@@ -36,3 +36,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     Clipper::clipper
     glider::glider
 )
+
+add_executable(scenic_test examples/test_scenic.cpp)
+target_link_libraries(scenic_test
+    ${PROJECT_NAME}
+)
+
+add_executable(kmeans_test examples/test_kmeans.cpp)
+target_link_libraries(kmeans_test
+    ${PROJECT_NAME}
+)
