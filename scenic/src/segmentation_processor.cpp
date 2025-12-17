@@ -28,9 +28,28 @@ void SegmentationProcessor::processBuffer()
             std::unique_ptr<SegmentationInput> raw_input= pop(Access::PRELOCK);
 
             Clipper::ClipperModelInputs processed_inputs = processor_.process(raw_input->image, raw_input->texts);
-            Clipper::ClipperModelOutput output = model_(processed_inputs);
+            Clipper::ClipperImageModelOutput image_output = model.setImage(processed_inputs.image);
+            
+            size_t input_size = inputs.getSize();
+            std::array<cv::Mat, input_size> logits;
+            std::array<cv::Mat, input_size> heatmaps;
+            std::array<cv::Mat, input_size> masks;
+            for (size_t i = 0; i < input_size; ++i) {
+                at::Tensor raw_logits = model_.inference(image_output.activations,
+                                                     inputs.tokens[i],
+                                                     inputs.tokens[i]);
+                
+                cv::Mat cv_logits = processor_.postProcess(raw_logits);
+                logits[i] = cv_logits;
 
-            cv::Mat heatmap = processor_.postProcess(output.logits[0]);
+                cv::Mat normalized_logits = processor_.normalize(cv_logits);
+                heatmaps[i] = normalized_logits;
+                
+                // create mask
+                cv::Mat mask;
+                cv::threshold(normalized_logits, mask, 0.8, 1.0, cv::THRESH_BINARY);
+                masks[i] = mask;
+            }
         }
         else {
             lock.unlock();
