@@ -26,8 +26,8 @@ void SegmentationProcessor::processBuffer()
         std::unique_lock<std::mutex> lock(mutex_);
         if (size(Access::PRELOCK) >= min_elem_) {
             std::unique_ptr<SegmentationInput> raw_input= pop(Access::PRELOCK);
-            std::cout << "Using output: " << raw_input->texts[0] << std::endl;
-            Clipper::ClipperModelInputs processed_inputs = processor_.process(raw_input->image, raw_input->texts);
+            std::vector<std::string> texts = raw_input->texts.getStrings(); 
+            Clipper::ClipperModelInputs processed_inputs = processor_.process(raw_input->image, texts);
             Clipper::ClipperImageModelOutput image_output = model_.setImage(processed_inputs.image);
             
             const size_t input_size = processed_inputs.getSize();
@@ -41,12 +41,6 @@ void SegmentationProcessor::processBuffer()
                
                 // convert the logits to cv and resize
                 cv::Mat cv_logits = processor_.postProcess(raw_logits);
-                double minVal, maxVal;
-                cv::Point minLoc, maxLoc;
-                cv::minMaxLoc(cv_logits, &minVal, &maxVal, &minLoc, &maxLoc);
-
-                std::cout << "Min: " << minVal << " at " << minLoc << std::endl;
-                std::cout << "Max: " << maxVal << " at " << maxLoc << std::endl;
                 graphing_input->logits[i] = cv_logits.clone();
 
                 // create mask

@@ -15,48 +15,17 @@
 
 namespace Scenic
 {
-class Node 
+struct Node
 {
-    public:
-        Node() = default
-        Node(const int uid);    
+    Node() = default;
+    Node(const UTMPoint& utm, const LatLonPoint& ll, const cv::Point& pixel);
 
-        int getUID() const;
-        UTMPoint getUTM() const;
-        LatLonPoint getLatLon() const;
-        std::string getLabel() const;
+    UTMPoint utm;
+    LatLonPoint latlon;
+    cv::Point pixel;
 
-    private:
-        UTMPoint utm_;
-        LatLonPoint latlon_;
-
-        int uid_;
-        std::string label_;
+    int label;
+    int nid;
 };
-
-class RegionNode : public Node
-{
-    public: 
-        using Node::Node;
-        
-        void addNeighbor(const Edge edge);
-        void addObject(const Edge edge);
-
-    private:
-        std::vector<Edge> neighbors_;
-        std::vecotr<Edge> objects_;
-};
-
-class ObjectNode : public Node
-{
-    public:
-        using Node::Node
-
-        void AddParentNode(RegionNode node);
-
-    private:
-        RegionNode parent_node_;
-}
-
 }
 

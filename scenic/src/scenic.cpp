@@ -33,7 +33,7 @@ void Scenic::stop()
     seg_processor_->stop();
 }   
 
-void Scenic::setText(const std::vector<std::string>& text)
+void Scenic::setText(const std::vector<std::pair<std::string,int>>& text)
 {
     texts_ = text;
 }
@@ -53,10 +53,11 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 
 void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
-    cv::imshow("mask", so->masks[0]);
+    cv::imshow("mask", so->logits[0]);
     cv::waitKey(0);
     cv::Mat mask_8bit;
     so->masks[0].convertTo(mask_8bit, CV_8U, 255);  // Scale [0,1] to [0,255]
-    cv::imwrite("test4_mask.png", mask_8bit);
+    cv::imwrite("test_mask.png", mask_8bit);
+    // TODO push to grapher
 }
 }// namespace Scenic

@@ -24,7 +24,7 @@ class Scenic
         void start();
         void stop();
         
-        void setText(const std::vector<std::string>& text);
+        void setText(const std::vector<std::pair<std::string,int>>& text);
 
         void push(const cv::Mat& img, const Glider::Odometry& odom);
 
@@ -34,7 +34,7 @@ class Scenic
         //void graphingCallback(nullptr);
 
     private:
-        std::vector<std::string> texts_;
+        std::vector<std::pair<std::string,int>> texts_;
         std::unique_ptr<SegmentationProcessor> seg_processor_;
         //std::unique_ptr<GraphingProcessor> graph_processor_;  
 };

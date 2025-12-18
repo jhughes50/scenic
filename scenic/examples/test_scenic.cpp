@@ -14,11 +14,11 @@ int main()
     std::string config_path = "/home/jason/clipper/config";
 
     Scenic::Scenic scenic_core(10, model_path, config_path);
-
-    scenic_core.setText({"road"});
+    std::pair<std::string, int> p = std::make_pair<std::string, int>("road", 0);
+    scenic_core.setText({p});
     scenic_core.start();
 
-    cv::Mat img = cv::imread("test4.png", cv::IMREAD_COLOR);
+    cv::Mat img = cv::imread("test.png", cv::IMREAD_COLOR);
     cv::resize(img, img, cv::Size(), 0.25, 0.25);
     std::cout << img.rows << "  " << img.cols << std::endl;
 
