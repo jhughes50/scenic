@@ -35,7 +35,7 @@ KMeansOutput KMeans::Cluster(const cv::Mat mask, int k)
         voronoi.at<uchar>(points[i]) = cluster;  // Map 0,1,2 to 0,127,255
     }
 
-    std::vector<Point> cluster_centers;
+    std::vector<cv::Point> cluster_centers;
     for (int i = 0; i < k; i++) {
         cluster_centers.push_back({
             static_cast<int>(centers.at<float>(i, 0)),
@@ -51,7 +51,7 @@ KMeansOutput KMeans::Cluster(const cv::Mat mask, int k)
     return output;
 }
 
-std::unordered_map<uchar, std::unordered_set<uchar>> KMeans::findAdjacentRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k)
+AdjacencyOutput KMeans::ConnectRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k)
 {
     std::unordered_map<uchar, std::unordered_set<uchar>> adjacency_dict;
     
@@ -76,6 +76,7 @@ std::unordered_map<uchar, std::unordered_set<uchar>> KMeans::findAdjacentRegions
             }
         }
     }
-    
-    return adjacency_dict; 
+    AdjacencyOutput output;
+    output.adjacency = adjacency_dict;
+    return output; 
 }

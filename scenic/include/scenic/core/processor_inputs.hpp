@@ -21,7 +21,7 @@ struct Text
 {
     size_t uid;
     std::string label;
-    int region;
+    int level;
 };
 
 struct TextMap
