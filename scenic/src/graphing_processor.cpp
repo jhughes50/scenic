@@ -24,7 +24,10 @@ void GraphingProcessor::processBuffer()
     while(!isStopped()) {
         std::unique_lock<std::mutex> lock(mutex_);
         if (size(Access::PRELOCK) >= min_elem_) {
-            // TODO graph 
+            std::unique_ptr<GraphingInput> raw_input = pop(Access::PRELOCK);
+            RegionGraph region_graph = RegionGraph::RegionAnalysis(raw_input);
+            ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(raw_input);
+            Graph graph = region_graph + object_graph;
         }
         else {
             lock.unlock();

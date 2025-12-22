@@ -45,7 +45,7 @@ void SegmentationProcessor::processBuffer()
 
                 // create mask
                 cv::Mat mask;
-                cv::threshold(cv_logits, mask, 1.0, 1.0, cv::THRESH_BINARY);
+                cv::threshold(cv_logits, mask, 0.0, 1.0, cv::THRESH_BINARY);
                 graphing_input->masks[i] = mask.clone();
             }
 
