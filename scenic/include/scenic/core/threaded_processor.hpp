@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <random>
 #include <thread>
 #include <atomic>
 
@@ -27,6 +28,8 @@ class ThreadedProcessor : public ProcessBuffer<F>
         void stop();
 
         bool isStopped() const;
+
+        int generateProcessID() const;
 
     protected:
         virtual void processBuffer() = 0;
@@ -69,5 +72,14 @@ template <typename F>
 bool ThreadedProcessor<F>::isStopped() const
 {
     return should_stop_;
+}
+
+template <typename F>
+int ThreadedProcessor<F>::generateProcessID() const
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, std::numeric_limits<int>::max());
+    return dis(gen);
 }
 } // namespace Scenic

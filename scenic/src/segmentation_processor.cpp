@@ -15,7 +15,7 @@ SegmentationProcessor::SegmentationProcessor(size_t capacity, const std::string&
     processor_ = Clipper::ClipperProcessor(config_path+"/clipper.yaml", config_path+"/merges.txt", config_path+"/vocab.json");
 }
 
-void SegmentationProcessor::setCallback(std::function<void(std::shared_ptr<SegmentationOutput>)> callback)
+void SegmentationProcessor::setCallback(std::function<void(std::shared_ptr<GraphingInput>)> callback)
 {
     outputCallback = callback;
 }
@@ -26,11 +26,30 @@ void SegmentationProcessor::processBuffer()
         std::unique_lock<std::mutex> lock(mutex_);
         if (size(Access::PRELOCK) >= min_elem_) {
             std::unique_ptr<SegmentationInput> raw_input= pop(Access::PRELOCK);
+            std::vector<std::string> texts = raw_input->texts.getStrings(); 
+            Clipper::ClipperModelInputs processed_inputs = processor_.process(raw_input->image, texts);
+            Clipper::ClipperImageModelOutput image_output = model_.setImage(processed_inputs.image);
+            
+            const size_t input_size = processed_inputs.getSize();
+            //todo update with odom
+            std::shared_ptr<GraphingInput> graphing_input = std::make_shared<GraphingInput>(input_size, raw_input->image, raw_input->texts);
 
-            Clipper::ClipperModelInputs processed_inputs = processor_.process(raw_input->image, raw_input->texts);
-            Clipper::ClipperModelOutput output = model_(processed_inputs);
+            for (size_t i = 0; i < input_size; ++i) {
+                at::Tensor raw_logits = model_.inference(image_output.activations,
+                                                         processed_inputs.tokens[i],
+                                                         processed_inputs.masks[i]);
+               
+                // convert the logits to cv and resize
+                cv::Mat cv_logits = processor_.postProcess(raw_logits);
+                graphing_input->logits[i] = cv_logits.clone();
 
-            cv::Mat heatmap = processor_.postProcess(output.logits[0]);
+                // create mask
+                cv::Mat mask;
+                cv::threshold(cv_logits, mask, 0.0, 1.0, cv::THRESH_BINARY);
+                graphing_input->masks[i] = mask.clone();
+            }
+
+            if (outputCallback) outputCallback(graphing_input);
         }
         else {
             lock.unlock();

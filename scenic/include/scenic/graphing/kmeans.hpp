@@ -7,25 +7,28 @@
 
 #pragma once
 
+#include <unordered_set>
 #include <opencv2/opencv.hpp>
 
 namespace Scenic
 {
-
-struct Point
-{
-    int x;
-    int y;
-};
-
 struct KMeansOutput
 {
-    std::vector<Point> centroids;
+    std::vector<cv::Point> centroids;
     cv::Mat voronoi;
+    std::vector<cv::Point> points;
+};
+
+struct AdjacencyOutput
+{
+    std::unordered_map<uchar, std::unordered_set<uchar>> adjacency;
+    std::unordered_map<uchar, cv::Point> centroids;
 };
 
 struct KMeans
 {
-    KMeansOutput operator()(const cv::Mat mask, int k);
+    static KMeansOutput Cluster(const cv::Mat mask, int k);
+    static AdjacencyOutput ConnectRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k);
+    int getNumRegions(); // TODO
 };
 }
