@@ -29,6 +29,7 @@ add_library(${PROJECT_NAME}
     src/scenic.cpp
     src/node.cpp
     src/graph.cpp
+    src/edge.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC

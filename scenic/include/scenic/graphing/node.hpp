@@ -13,7 +13,6 @@
 #include <cstdint>
 #include <opencv2/opencv.hpp>
 
-#include "scenic/graphing/edge.hpp"
 #include "scenic/utils/geostructs.hpp"
 
 namespace Scenic

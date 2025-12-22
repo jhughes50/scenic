@@ -33,27 +33,48 @@ class UIDGenerator
         }
 };
 
+class RegionGraph;
+class ObjectGraph;
+
 class Graph
 {
     public:
         Graph() = default;
-        
-        static Graph RegionAnalysis(const GraphingInput& input);
-        static Graph ObjectAnalysis(const GraphingInput& input);
-   
-        void setNodes(const AdjacencyOutput& adj, std::map<uchar,cv::Point>& centroids, const int& cls_label);
-        void setNodes(const std::vector<cv::Point>& centroids, const int& cls_label); 
+        Graph(std::map<uint64_t, std::shared_ptr<Node>> nodes);
+    
+        friend Graph operator+(const RegionGraph& rg, const ObjectGraph& og);
+
         // get a node
         std::shared_ptr<Node> operator[](uint64_t nid);
         // get an edge
-        //Edge operator[](const uint64_t& nid1, const uint64_t nid2) const;
+        std::shared_ptr<Edge> operator()(uint64_t nid1, uint64_t nid2);
 
         std::shared_ptr<Node> getNode(uint64_t nid);
         //Edge getEdge(const uint64_t& nid1, const uint64_t nid2) const;
 
         std::map<uint64_t, std::shared_ptr<Node>> getNodes() const;
 
-    private:
+    protected:
         std::map<uint64_t, std::shared_ptr<Node>> nodes_; 
+};
+
+class RegionGraph : public Graph
+{
+    public:
+        RegionGraph() = default;
+        
+        static RegionGraph RegionAnalysis(const GraphingInput& input);
+
+        void setNodes(const AdjacencyOutput& adj, std::map<uchar,cv::Point>& centroids, const int& cls_label);
+};
+
+class ObjectGraph : public Graph
+{
+    public:
+        ObjectGraph() = default;
+        
+        static ObjectGraph ObjectAnalysis(const GraphingInput& input);
+        
+        void setNodes(const std::vector<cv::Point>& centroids, const int& cls_label); 
 };
 }

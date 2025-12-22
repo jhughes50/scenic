@@ -9,7 +9,74 @@
 
 using namespace Scenic;
 
-Graph Graph::RegionAnalysis(const GraphingInput& input)
+Graph::Graph(std::map<uint64_t, std::shared_ptr<Node>> nodes)
+{
+    nodes_ = nodes;
+}
+
+std::shared_ptr<Node> Graph::operator[](uint64_t nid)
+{
+    return nodes_[nid];
+}
+
+std::shared_ptr<Node> Graph::getNode(uint64_t nid) 
+{
+    return nodes_[nid];
+}
+
+std::map<uint64_t, std::shared_ptr<Node>> Graph::getNodes() const
+{
+    return nodes_;
+}
+
+std::shared_ptr<Edge> Graph::operator()(uint64_t nid1, uint64_t nid2)
+{
+    std::shared_ptr<Node> node1 = nodes_[nid1];
+    std::shared_ptr<Edge> edge = nullptr;
+    for(const auto n : node1->getConnectedNodes()) {
+        if (n->getNodeID() == nid2) {
+            edge = std::make_shared<Edge>(node1, n);
+            break;
+        }
+    }
+    return edge;
+}
+
+Scenic::Graph Scenic::operator+(const RegionGraph& rg, const ObjectGraph& og)
+{
+    std::map<uint64_t, std::shared_ptr<Node>> region_nodes = rg.getNodes();
+    std::map<uint64_t, std::shared_ptr<Node>> object_nodes = og.getNodes();
+    
+    std::map<uint64_t, std::shared_ptr<Node>> merged_nodes;
+    for (const auto& [key, node] : region_nodes) {
+        merged_nodes[key] = node;
+    }
+    for (const auto& [key, node] : object_nodes) {
+        merged_nodes[key] = node;
+    }
+    Graph merged_graph(merged_nodes);
+
+    for(const auto& [okey, on] : object_nodes) {
+        std::shared_ptr<Node> closest_node;
+        cv::Point op = on->getPixelCoordinate();
+        double min_dist = std::numeric_limits<double>::max();
+        for(const auto& [rkey, rn] : region_nodes) {
+            cv::Point rp = rn->getPixelCoordinate();
+            double dist = cv::norm(op - rp);
+            if (dist < min_dist) {
+                min_dist = dist;
+                closest_node = rn;
+            }
+        }
+        closest_node->addConnection(on);
+        on->addConnection(closest_node);
+    }
+    
+    return merged_graph;
+}
+
+
+RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input)
 {
     size_t input_size = input.getSize();
 
@@ -31,42 +98,13 @@ Graph Graph::RegionAnalysis(const GraphingInput& input)
         centers[region_id] = p;
     }
 
-    Graph region_graph;
+    RegionGraph region_graph;
     region_graph.setNodes(graph, centers, 0);
 
     return region_graph;
 }
 
-Graph Graph::ObjectAnalysis(const GraphingInput& input)
-{
-    size_t input_size = input.getSize();
-    std::vector<cv::Point> cluster_centroids;
-    for (size_t i = 0; i < input_size; ++i) {
-        if (input.texts.text[i].level == 1) {
-            cv::Mat labels, stats, centroids;
-            int num_clusters = cv::connectedComponentsWithStats(input.masks[i],
-                                                                labels,
-                                                                stats,
-                                                                centroids,
-                                                                8,
-                                                                CV_32S);
-
-
-
-            for (int i = 1; i < num_clusters; i++) {
-                cv::Point centroid(centroids.at<double>(i, 0), centroids.at<double>(i, 1));
-                std::cout << "Object center at " << centroid.x << " " << centroid.y << std::endl;
-                cluster_centroids.push_back(centroid);
-            }
-        }
-    }
-
-    Graph graph;
-    graph.setNodes(cluster_centroids, 1);
-    return graph;
-}
-
-void Graph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point>& centroids, const int& cls_label)
+void RegionGraph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point>& centroids, const int& cls_label)
 {
     std::map<uchar, uint64_t> uid_map;
     for (const auto& [key, vals] : adj.adjacency) {
@@ -86,7 +124,37 @@ void Graph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point>& cen
     }
 }
 
-void Graph::setNodes(const std::vector<cv::Point>& centroids, const int& cls_label)
+ObjectGraph ObjectGraph::ObjectAnalysis(const GraphingInput& input)
+{
+    size_t input_size = input.getSize();
+    std::vector<cv::Point> cluster_centroids;
+    for (size_t i = 0; i < input_size; ++i) {
+        if (input.texts.text[i].level == 1) {
+            cv::Mat labels, stats, centroids;
+            int num_clusters = cv::connectedComponentsWithStats(input.masks[i],
+                                                                labels,
+                                                                stats,
+                                                                centroids,
+                                                                8,
+                                                                CV_32S);
+
+
+
+            for (int i = 1; i < num_clusters; i++) {
+                cv::Point centroid(centroids.at<double>(i, 0), centroids.at<double>(i, 1));
+                cluster_centroids.push_back(centroid);
+            }
+        }
+    }
+
+    ObjectGraph graph;
+    graph.setNodes(cluster_centroids, 1);
+    return graph;
+}
+
+
+
+void ObjectGraph::setNodes(const std::vector<cv::Point>& centroids, const int& cls_label)
 {
     for (const cv::Point& c : centroids) {
         uint64_t uid = UIDGenerator::getNextUID();
@@ -95,18 +163,5 @@ void Graph::setNodes(const std::vector<cv::Point>& centroids, const int& cls_lab
     }
 }
 
-std::shared_ptr<Node> Graph::operator[](uint64_t nid)
-{
-    return nodes_[nid];
-}
 
-std::shared_ptr<Node> Graph::getNode(uint64_t nid) 
-{
-    return nodes_[nid];
-}
-
-std::map<uint64_t, std::shared_ptr<Node>> Graph::getNodes() const
-{
-    return nodes_;
-}
 
