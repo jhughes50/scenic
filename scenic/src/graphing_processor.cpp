@@ -9,12 +9,12 @@
 
 using namespace Scenic;
 
-GraphingProcessor::GraphingProcess(size_t capacity) : ThreadedProcessor<GraphingInput>(capacity)
+GraphingProcessor::GraphingProcessor(size_t capacity) : ThreadedProcessor<GraphingInput>(capacity)
 {
 
 }
 
-void GraphingProcessor(std::function<void(std::shared_ptr<ScenicGraph>)> callback)
+void GraphingProcessor::setCallback(std::function<void(std::shared_ptr<ScenicGraph>)> callback)
 {
     outputCallback = callback;
 }
@@ -25,8 +25,8 @@ void GraphingProcessor::processBuffer()
         std::unique_lock<std::mutex> lock(mutex_);
         if (size(Access::PRELOCK) >= min_elem_) {
             std::unique_ptr<GraphingInput> raw_input = pop(Access::PRELOCK);
-            RegionGraph region_graph = RegionGraph::RegionAnalysis(raw_input);
-            ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(raw_input);
+            RegionGraph region_graph = RegionGraph::RegionAnalysis(*raw_input);
+            ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(*raw_input);
             Graph graph = region_graph + object_graph;
         }
         else {

@@ -16,20 +16,25 @@
 
 namespace Scenic
 {
+enum GraphLevel
+{
+    OBJECT,
+    REGION
+};
 
 struct Text
 {
     size_t uid;
     std::string label;
-    int level;
+    GraphLevel level;
 };
 
 struct TextMap
 {
     TextMap() = default;
-    TextMap(const std::vector<std::pair<std::string, int>>& texts)
+    TextMap(const std::vector<std::pair<std::string, GraphLevel>>& texts)
     {
-        for (const std::pair<std::string, int> t : texts) {
+        for (const std::pair<std::string, GraphLevel> t : texts) {
             size_t uid = std::hash<std::string>{}(t.first);
             text.push_back(Text{uid, t.first, t.second});
         }

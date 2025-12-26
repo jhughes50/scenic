@@ -82,7 +82,7 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input)
 
     cv::Mat region_mask = cv::Mat::zeros(input.image.rows, input.image.cols, CV_8UC1);
     for (size_t i = 0; i < input_size; ++i) {
-        if (input.texts.text[i].level == 0) {
+        if (input.texts.text[i].level == GraphLevel::REGION) {
             cv::bitwise_or(region_mask, input.masks[i], region_mask);
         }
     }
@@ -129,7 +129,7 @@ ObjectGraph ObjectGraph::ObjectAnalysis(const GraphingInput& input)
     size_t input_size = input.getSize();
     std::vector<cv::Point> cluster_centroids;
     for (size_t i = 0; i < input_size; ++i) {
-        if (input.texts.text[i].level == 1) {
+        if (input.texts.text[i].level == GraphLevel::OBJECT) {
             cv::Mat labels, stats, centroids;
             int num_clusters = cv::connectedComponentsWithStats(input.masks[i],
                                                                 labels,

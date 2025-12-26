@@ -16,7 +16,7 @@ TEST(ScenicTestSuite, TestClipperViaCore)
     std::string config_path = "/home/jason/clipper/config";
 
     Scenic::Scenic scenic_core(10, model_path, config_path);
-    std::pair<std::string, int> p = std::make_pair<std::string, int>("car", 0);
+    std::pair<std::string, Scenic::GraphLevel> p = std::make_pair("car", Scenic::GraphLevel::OBJECT);
     scenic_core.setText({p});
     scenic_core.start();
 
