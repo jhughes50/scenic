@@ -1,0 +1,6 @@
+object:
+  id: 1
+  threshold: 0.0
+region:
+  id: 0
+  threshold: 1.0

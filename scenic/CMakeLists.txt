@@ -25,7 +25,9 @@ include_directories(
 
 add_library(${PROJECT_NAME}
     src/kmeans.cpp
+    src/params.cpp
     src/segmentation_processor.cpp
+    src/graphing_processor.cpp
     src/scenic.cpp
     src/node.cpp
     src/graph.cpp

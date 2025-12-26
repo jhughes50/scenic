@@ -9,8 +9,10 @@
 
 using namespace Scenic;
 
-SegmentationProcessor::SegmentationProcessor(size_t capacity, const std::string& model_path, const std::string& config_path) : ThreadedProcessor<SegmentationInput>(capacity)
+SegmentationProcessor::SegmentationProcessor(size_t capacity, std::string config_path, const std::string& model_path, const std::string& model_config_path) : ThreadedProcessor<SegmentationInput>(capacity)
 {
+    config_path += "/segmentation.yaml";
+    params_ = SegmentationParameters::Load(config_path);
     model_ = Clipper::ClipperModel(model_path);
     processor_ = Clipper::ClipperProcessor(config_path+"/clipper.yaml", config_path+"/merges.txt", config_path+"/vocab.json");
 }
@@ -45,7 +47,14 @@ void SegmentationProcessor::processBuffer()
 
                 // create mask
                 cv::Mat mask;
-                cv::threshold(cv_logits, mask, 0.0, 1.0, cv::THRESH_BINARY);
+                switch (raw_input->texts.text[i].level) {
+                    case OBJECT:
+                        cv::threshold(cv_logits, mask, params_.object_threshold, 1.0, cv::THRESH_BINARY);
+                        break;
+                    case REGION:
+                        cv::threshold(cv_logits, mask, params_.region_threshold, 1.0, cv::THRESH_BINARY);
+                        break;
+                }
                 graphing_input->masks[i] = mask.clone();
             }
 

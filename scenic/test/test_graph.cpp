@@ -24,7 +24,7 @@ TEST(ScenicTestSuite, TestRegionGraphInit)
     input.masks.push_back(mask);
     input.logits.push_back(mask);
     input.image = img;
-    Scenic::Text text({0,"road", 0});
+    Scenic::Text text({0,"road", Scenic::GraphLevel::REGION});
     input.texts.text.push_back(text);
 
     Scenic::RegionGraph graph = Scenic::RegionGraph::RegionAnalysis(input);
@@ -63,7 +63,7 @@ TEST(ScenicTestSuite, TestObjectGraphInit)
     input.masks.push_back(mask);
     input.logits.push_back(mask);
     input.image = img;
-    Scenic::Text text({0,"car", 1});
+    Scenic::Text text({0,"car", Scenic::GraphLevel::OBJECT});
     input.texts.text.push_back(text);
 
     Scenic::ObjectGraph graph = Scenic::ObjectGraph::ObjectAnalysis(input);
@@ -90,7 +90,7 @@ TEST(ScenicTestSuite, TestGraphMerge)
     input.masks.push_back(mask);
     input.logits.push_back(mask);
     input.image = img;
-    Scenic::Text text({0,"road", 0});
+    Scenic::Text text({0,"road", Scenic::GraphLevel::REGION});
     input.texts.text.push_back(text);
 
     Scenic::RegionGraph region_graph = Scenic::RegionGraph::RegionAnalysis(input);
@@ -101,7 +101,7 @@ TEST(ScenicTestSuite, TestGraphMerge)
     input1.masks.push_back(mask);
     input1.logits.push_back(mask);
     input1.image = img;
-    Scenic::Text text1({0,"car", 1});
+    Scenic::Text text1({0,"car", Scenic::GraphLevel::OBJECT});
     input1.texts.text.push_back(text1);
 
     Scenic::ObjectGraph object_graph = Scenic::ObjectGraph::ObjectAnalysis(input1);

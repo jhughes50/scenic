@@ -12,7 +12,8 @@ namespace Scenic
 
 Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string& config_path)
 {
-    seg_processor_ = std::make_unique<SegmentationProcessor>(capacity, model_path, config_path);
+    std::string params_path = "../config/";
+    seg_processor_ = std::make_unique<SegmentationProcessor>(capacity, params_path, model_path, config_path);
     seg_processor_->setCallback([this](std::shared_ptr<GraphingInput> so) { 
         this->segmentationCallback(so); 
     });
@@ -33,16 +34,17 @@ void Scenic::stop()
     seg_processor_->stop();
 }   
 
-void Scenic::setText(const std::vector<std::pair<std::string,int>>& text)
+void Scenic::setText(const std::vector<std::pair<std::string,GraphLevel>>& text)
 {
-    texts_ = text;
+
+    texts_ = TextMap(text);
 }
 
 void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 {
     // create a pointer to input
     int pid = seg_processor_->generateProcessID();
-    if (texts_.size() > 0) {
+    if (texts_.text.size() > 0) {
         SegmentationInput seg_model_input(pid, img, odom, texts_);
         seg_processor_->push(seg_model_input);
     }
