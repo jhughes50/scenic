@@ -14,16 +14,16 @@
 namespace Scenic
 {
 
-class GraphingProcessor : ThreadedProcessor<GraphingInput>
+class GraphingProcessor : public ThreadedProcessor<GraphingInput>
 {
     public:
         GraphingProcessor() = default;
         GraphingProcessor(size_t capacity);
 
-        void setCallback(std::function<void(std::shared_ptr<ScenicGraph>)> callback);
+        void setCallback(std::function<void(std::shared_ptr<Graph>)> callback);
 
     private:
         void processBuffer() override;
-        std::function<void(std::shared_ptr<ScenicGraph>)> outputCallback;
+        std::function<void(std::shared_ptr<Graph>)> outputCallback;
 };
 } // namespace Scenic

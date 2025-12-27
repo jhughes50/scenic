@@ -29,17 +29,39 @@ std::map<uint64_t, std::shared_ptr<Node>> Graph::getNodes() const
     return nodes_;
 }
 
+std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> Graph::getEdge() const
+{
+    return edges_;
+}
+
 std::shared_ptr<Edge> Graph::operator()(uint64_t nid1, uint64_t nid2)
 {
-    std::shared_ptr<Node> node1 = nodes_[nid1];
-    std::shared_ptr<Edge> edge = nullptr;
-    for(const auto n : node1->getConnectedNodes()) {
-        if (n->getNodeID() == nid2) {
-            edge = std::make_shared<Edge>(node1, n);
-            break;
+    return getEdge(nid1, nid2);
+}
+
+std::shared_ptr<Edge> Graph::getEdge(uint64_t nid1, uint64_t nid2)
+{
+    std::pair<uint64_t, uint64_t> node_pair(nid1, nid2);
+    std::shared_ptr<Edge> edge = edges_[node_pair];
+
+    return edge;
+}
+
+void Graph::initEdges()
+{
+    for (const std::shared_ptr<Node> n1 : nodes_) {
+        for (const std::shared_ptr<Node> n2 : n1->getConnectedNodes()) {
+            std::shared_ptr<Edge> edge = std::make_shared<Edge>(n1, n2);
+            std::pair<uint64_t, uint64_t> node_pair(n1->getNodeID(), n2->getNoteID());
+            edges_[node_pair] = edge;
         }
     }
-    return edge;
+}
+
+void Graph::setEdgeScore(uint64_t nid1, uint64_t nid2, float score)
+{
+    std::shared_ptr<Edge> edge = getEdge(nid1, nid2);
+    edge->setScore(score);
 }
 
 Scenic::Graph Scenic::operator+(const RegionGraph& rg, const ObjectGraph& og)

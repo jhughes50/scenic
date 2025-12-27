@@ -17,6 +17,11 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
     seg_processor_->setCallback([this](std::shared_ptr<GraphingInput> so) { 
         this->segmentationCallback(so); 
     });
+
+    graph_processor_ = std::make_unique<GraphingProcessor>(capacity);
+    graph_processor_->setCallback([this](std::shared_ptr<Graph> go) {
+        this->graphCallback(go);
+    });
 }
 
 Scenic::~Scenic()
@@ -40,6 +45,11 @@ void Scenic::setText(const std::vector<std::pair<std::string,GraphLevel>>& text)
     texts_ = TextMap(text);
 }
 
+Graph Scenic::getGraph() const
+{
+    return graph_;
+}
+
 void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 {
     // create a pointer to input
@@ -53,13 +63,13 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
     }
 }
 
+void Scenic::graphCallback(std::shared_ptr<Graph> go)
+{
+    graph_ = *go; 
+}
+
 void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
-    cv::imshow("mask", so->logits[0]);
-    cv::waitKey(0);
-    cv::Mat mask_8bit;
-    so->masks[0].convertTo(mask_8bit, CV_8U, 255);  // Scale [0,1] to [0,255]
-    cv::imwrite("test_mask.png", mask_8bit);
-    // TODO push to grapher
+    graph_processor_->push(*so);
 }
 }// namespace Scenic

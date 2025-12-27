@@ -14,7 +14,7 @@ GraphingProcessor::GraphingProcessor(size_t capacity) : ThreadedProcessor<Graphi
 
 }
 
-void GraphingProcessor::setCallback(std::function<void(std::shared_ptr<ScenicGraph>)> callback)
+void GraphingProcessor::setCallback(std::function<void(std::shared_ptr<Graph>)> callback)
 {
     outputCallback = callback;
 }
@@ -28,6 +28,8 @@ void GraphingProcessor::processBuffer()
             RegionGraph region_graph = RegionGraph::RegionAnalysis(*raw_input);
             ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(*raw_input);
             Graph graph = region_graph + object_graph;
+            std::shared_ptr p_graph = std::make_shared<Graph>(graph);
+            outputCallback(p_graph);
         }
         else {
             lock.unlock();

@@ -50,12 +50,16 @@ class Graph
         std::shared_ptr<Edge> operator()(uint64_t nid1, uint64_t nid2);
 
         std::shared_ptr<Node> getNode(uint64_t nid);
+        std::shared_ptr<Edge> getEdge(uint64_t nid1, uint64_t nid2);
         //Edge getEdge(const uint64_t& nid1, const uint64_t nid2) const;
 
         std::map<uint64_t, std::shared_ptr<Node>> getNodes() const;
 
     protected:
-        std::map<uint64_t, std::shared_ptr<Node>> nodes_; 
+        void initEdges();
+
+        std::map<uint64_t, std::shared_ptr<Node>> nodes_;
+        std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> edges_;
 };
 
 class RegionGraph : public Graph

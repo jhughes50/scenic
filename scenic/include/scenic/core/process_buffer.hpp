@@ -32,7 +32,7 @@ class ProcessBuffer
         ProcessBuffer(size_t capacity);
 
         void push(const F frame, Access a = Access::LOCK);
-    
+        //void push(const std::shared_ptr<F> frame, Access a = Acess::LOCK);    
         // get oldest element
         std::unique_ptr<F> pop(Access a = Access::LOCK);
         // remove the oldest frame

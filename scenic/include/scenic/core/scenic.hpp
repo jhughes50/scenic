@@ -9,8 +9,10 @@
 
 #include <glider/core/odometry.hpp>
 
+
 #include "scenic/core/segmentation_processor.hpp"
 #include "scenic/core/graphing_processor.hpp"
+#include "scenic/graphing/graph.hpp"
 
 namespace Scenic
 {
@@ -25,17 +27,18 @@ class Scenic
         void stop();
         
         void setText(const std::vector<std::pair<std::string,GraphLevel>>& text);
-
+        Graph getGraph() const;
         void push(const cv::Mat& img, const Glider::Odometry& odom);
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
+        void graphCallback(std::shared_ptr<Graph> go);        
         // todo implement these
         //void homographyCallback(nullptr);
-        //void graphingCallback(nullptr);
 
     private:
         TextMap texts_;
+        Graph graph_;
         std::unique_ptr<SegmentationProcessor> seg_processor_;
-        //std::unique_ptr<GraphingProcessor> graph_processor_;  
+        std::unique_ptr<GraphingProcessor> graph_processor_;  
 };
 } // namespace Scenic
