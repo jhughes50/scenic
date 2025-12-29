@@ -46,14 +46,16 @@ class Graph
 
         // get a node
         std::shared_ptr<Node> operator[](uint64_t nid);
+        std::shared_ptr<Node> getNode(uint64_t nid);
         // get an edge
         std::shared_ptr<Edge> operator()(uint64_t nid1, uint64_t nid2);
-
-        std::shared_ptr<Node> getNode(uint64_t nid);
         std::shared_ptr<Edge> getEdge(uint64_t nid1, uint64_t nid2);
-        //Edge getEdge(const uint64_t& nid1, const uint64_t nid2) const;
-
+        
         std::map<uint64_t, std::shared_ptr<Node>> getNodes() const;
+        std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> getEdges() const;
+        std::map<uint64_t, std::shared_ptr<Node>> getRegionNodes() const;
+
+        void setEdgeScore(uint64_t nid1, uint64_t nid2, float score);
 
     protected:
         void initEdges();

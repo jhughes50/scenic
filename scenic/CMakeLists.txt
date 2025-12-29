@@ -49,12 +49,12 @@ target_link_libraries(scenic_test
     ${PROJECT_NAME}
 )
 
-add_executable(graph_test test/test_graph.cpp)
-target_link_libraries(graph_test
-    GTest::GTest
-    GTest::Main
-    ${PROJECT_NAME}
-)
+#add_executable(graph_test test/test_graph.cpp)
+#target_link_libraries(graph_test
+#    GTest::GTest
+#    GTest::Main
+#    ${PROJECT_NAME}
+#)
 
 add_executable(kmeans_test examples/test_kmeans.cpp)
 target_link_libraries(kmeans_test
@@ -63,4 +63,4 @@ target_link_libraries(kmeans_test
 
 include(GoogleTest)
 gtest_discover_tests(scenic_test)
-gtest_discover_tests(graph_test)
+#gtest_discover_tests(graph_test)

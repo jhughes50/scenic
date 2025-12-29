@@ -26,7 +26,7 @@ class Scenic
         void start();
         void stop();
         
-        void setText(const std::vector<std::pair<std::string,GraphLevel>>& text);
+        void setText(std::vector<Text> text);
         Graph getGraph() const;
         void push(const cv::Mat& img, const Glider::Odometry& odom);
 

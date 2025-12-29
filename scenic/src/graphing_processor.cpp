@@ -28,7 +28,10 @@ void GraphingProcessor::processBuffer()
             RegionGraph region_graph = RegionGraph::RegionAnalysis(*raw_input);
             ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(*raw_input);
             Graph graph = region_graph + object_graph;
+            Traversability::addTraversability(graph, raw_input);
+
             std::shared_ptr p_graph = std::make_shared<Graph>(graph);
+
             outputCallback(p_graph);
         }
         else {

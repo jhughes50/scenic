@@ -22,11 +22,93 @@ enum GraphLevel
     REGION
 };
 
+enum RegionPriority
+{
+    HIGH,
+    MEDIUM,
+    LOW,
+    NONE
+};
+
 struct Text
 {
+    Text() = default;
+    Text(size_t u, std::string lb, GraphLevel lv, RegionPriority p)
+    {       
+        uid = u;
+        label = lb;
+        level = lv;
+        priority = p;
+        switch(p) {
+            case HIGH:
+                multiplier = 1.0;
+                break;
+            case MEDIUM:
+                multiplier = 0.66;
+                break;
+            case LOW:
+                multiplier = 0.33;
+                break;
+            case NONE:
+                multiplier = 0.0;
+                break;
+            default:
+                multiplier = 0.0;
+        }
+    }
+
+    Text(std::string lb, GraphLevel lv, RegionPriority p)
+    {
+        uid =  std::hash<std::string>{}(lb);
+        label = lb;
+        level = lv;
+        priority = p;
+        switch(p) {
+            case HIGH:
+                multiplier = 1.0;
+                break;
+            case MEDIUM:
+                multiplier = 0.66;
+                break;
+            case LOW:
+                multiplier = 0.33;
+                break;
+            case NONE:
+                multiplier = 0.0;
+                break;
+            default:
+                multiplier = 0.0;
+        }
+    }
+    
+    Text(size_t u, std::string lb, GraphLevel lv)
+    {       
+        uid = u;
+        label = lb;
+        level = lv;
+        assert(lv != GraphLevel::REGION && "Regions need to set a RegionPriority");
+        priority = RegionPriority::NONE;
+        multiplier = 0.0;
+    }
+
     size_t uid;
     std::string label;
     GraphLevel level;
+    RegionPriority priority;
+    float multiplier;
+};
+
+struct TextWithResults : public Text
+{
+    TextWithResults() = default;
+    TextWithResults(size_t uid, std::string label, GraphLevel level, RegionPriority p, cv::Mat log, cv::Mat mas) : Text(uid, label, level, p)
+    {
+        logits = log;
+        mask = mas;
+    }
+
+    cv::Mat logits;
+    cv::Mat mask;
 };
 
 struct TextMap
@@ -51,6 +133,7 @@ struct TextMap
 
     std::vector<Text> text;
 };
+
 
 struct BaseInput
 {
@@ -84,45 +167,56 @@ struct SegmentationInput : public BaseInput
     }
 };
 
-struct GraphingInput : public SegmentationInput
+struct GraphingInput
 {
     GraphingInput() = default;
-    GraphingInput(const size_t size)
-    {
-        heatmaps = std::vector<cv::Mat>(size);
-        logits = std::vector<cv::Mat>(size);
-        masks = std::vector<cv::Mat>(size);
-    }
-    
-    GraphingInput(const size_t size, cv::Mat img, TextMap text)
-    {
-        image = img;
-        texts = text;
-        heatmaps = std::vector<cv::Mat>(size);
-        logits = std::vector<cv::Mat>(size);
-        masks = std::vector<cv::Mat>(size);
-    }
-    
-    GraphingInput(const size_t size, cv::Mat img, TextMap text, Glider::Odometry odm)
-    {
-        image = img;
-        texts = text;
-        odom = odm;
-        heatmaps = std::vector<cv::Mat>(size);
-        logits = std::vector<cv::Mat>(size);
-        masks = std::vector<cv::Mat>(size);
-    }
 
     size_t getSize() const
     {
-        assert(logits.size() == texts.text.size() && "Logits and Texts are not the same size");
-        assert(masks.size() == texts.text.size() && "Masks and Texts are not the same size");
-
-        return texts.text.size();
+        return map.size();
     }
 
-    std::vector<cv::Mat> heatmaps; // TODO depricated
-    std::vector<cv::Mat> logits;
-    std::vector<cv::Mat> masks;
+    cv::Mat getLogitsFromClassLabel(int label) const
+    {
+        cv::Mat logits;
+        for (const TextWithResults& e : map) {
+            if (e.uid == label) logits = e.logits;
+        }
+        return logits;
+    }
+
+    cv::Mat getNormalizedLogitsFromClassLabel(int label) const
+    {
+        cv::Mat logits;
+        for (const TextWithResults& e : map) {
+            if (e.uid == label) logits = e.logits;
+        }
+        cv::normalize(logits, logits, 0.0, 1.0, cv::NORM_MINMAX);
+
+        return logits;
+    }
+
+    cv::Mat getMaskFromClassLabel(int label) const
+    {
+        cv::Mat mask;
+        for (const TextWithResults& e : map) {
+            if (e.uid == label) mask = e.mask;
+        }
+        return mask;
+    }
+
+    float getMultiplierFromClassLabel(int label) const
+    {
+        float mult = 0.0;
+        for (const TextWithResults& e : map) {
+            if (e.uid == label) {
+                mult = e.multiplier;
+            }
+        }
+        return mult; 
+    }
+
+    cv::Mat image;
+    std::vector<TextWithResults> map; 
 };
 } //namespace Scenic

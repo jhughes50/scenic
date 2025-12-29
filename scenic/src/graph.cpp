@@ -29,7 +29,19 @@ std::map<uint64_t, std::shared_ptr<Node>> Graph::getNodes() const
     return nodes_;
 }
 
-std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> Graph::getEdge() const
+std::map<uint64_t, std::shared_ptr<Node>> Graph::getRegionNodes() const
+{
+    std::map<uint64_t, std::shared_ptr<Node>> region_nodes;
+    for (const auto& [key, node] : nodes_) {
+        if (node->getNodeLevel() == GraphLevel::REGION) {
+            region_nodes[key] = node;
+        }
+    }
+
+    return region_nodes;
+}
+
+std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> Graph::getEdges() const
 {
     return edges_;
 }
@@ -49,10 +61,10 @@ std::shared_ptr<Edge> Graph::getEdge(uint64_t nid1, uint64_t nid2)
 
 void Graph::initEdges()
 {
-    for (const std::shared_ptr<Node> n1 : nodes_) {
+    for (const auto& [key, n1] : nodes_) {
         for (const std::shared_ptr<Node> n2 : n1->getConnectedNodes()) {
             std::shared_ptr<Edge> edge = std::make_shared<Edge>(n1, n2);
-            std::pair<uint64_t, uint64_t> node_pair(n1->getNodeID(), n2->getNoteID());
+            std::pair<uint64_t, uint64_t> node_pair(n1->getNodeID(), n2->getNodeID());
             edges_[node_pair] = edge;
         }
     }
@@ -93,7 +105,8 @@ Scenic::Graph Scenic::operator+(const RegionGraph& rg, const ObjectGraph& og)
         closest_node->addConnection(on);
         on->addConnection(closest_node);
     }
-    
+    merged_graph.initEdges();
+
     return merged_graph;
 }
 
@@ -104,8 +117,8 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input)
 
     cv::Mat region_mask = cv::Mat::zeros(input.image.rows, input.image.cols, CV_8UC1);
     for (size_t i = 0; i < input_size; ++i) {
-        if (input.texts.text[i].level == GraphLevel::REGION) {
-            cv::bitwise_or(region_mask, input.masks[i], region_mask);
+        if (input.map[i].level == GraphLevel::REGION) {
+            cv::bitwise_or(region_mask, input.map[i].mask, region_mask);
         }
     }
 
@@ -133,7 +146,7 @@ void RegionGraph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point
         uint64_t uid = UIDGenerator::getNextUID();
         uid_map[key] = uid;
         cv::Point pixel_coord = centroids[key];
-        std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, pixel_coord);
+        std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
         nodes_[uid] = n;
     }
 
@@ -151,9 +164,9 @@ ObjectGraph ObjectGraph::ObjectAnalysis(const GraphingInput& input)
     size_t input_size = input.getSize();
     std::vector<cv::Point> cluster_centroids;
     for (size_t i = 0; i < input_size; ++i) {
-        if (input.texts.text[i].level == GraphLevel::OBJECT) {
+        if (input.map[i].level == GraphLevel::OBJECT) {
             cv::Mat labels, stats, centroids;
-            int num_clusters = cv::connectedComponentsWithStats(input.masks[i],
+            int num_clusters = cv::connectedComponentsWithStats(input.map[i].mask,
                                                                 labels,
                                                                 stats,
                                                                 centroids,
@@ -180,7 +193,7 @@ void ObjectGraph::setNodes(const std::vector<cv::Point>& centroids, const int& c
 {
     for (const cv::Point& c : centroids) {
         uint64_t uid = UIDGenerator::getNextUID();
-        std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, c);
+        std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::OBJECT, c);
         nodes_[uid] = n;
     }
 }

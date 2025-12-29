@@ -8,8 +8,10 @@
 #include <opencv2/opencv.hpp>
 
 #include "scenic/graphing/graph.hpp"
+#include "scenic/graphing/traversability.hpp"
 #include "scenic/core/threaded_processor.hpp"
 #include "scenic/core/processor_inputs.hpp"
+
 
 namespace Scenic
 {

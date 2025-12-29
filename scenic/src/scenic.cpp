@@ -39,10 +39,9 @@ void Scenic::stop()
     seg_processor_->stop();
 }   
 
-void Scenic::setText(const std::vector<std::pair<std::string,GraphLevel>>& text)
+void Scenic::setText(std::vector<Text> text)
 {
-
-    texts_ = TextMap(text);
+    texts_.text = text;
 }
 
 Graph Scenic::getGraph() const
@@ -59,7 +58,7 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
         seg_processor_->push(seg_model_input);
     }
     else {
-        // TODO shame user for trying to inference without setting text
+        std::cerr << "[SCENIC] Trying to inference before text was set" << std::endl;
     }
 }
 

@@ -8,6 +8,9 @@
 #include <gtest/gtest.h>
 
 #include "scenic/core/scenic.hpp"
+#include "scenic/core/processor_inputs.hpp"
+
+using namespace Scenic;
 
 TEST(ScenicTestSuite, TestClipperViaCore)
 {
@@ -16,8 +19,13 @@ TEST(ScenicTestSuite, TestClipperViaCore)
     std::string config_path = "/home/jason/clipper/config";
 
     Scenic::Scenic scenic_core(10, model_path, config_path);
-    std::pair<std::string, Scenic::GraphLevel> p = std::make_pair("car", Scenic::GraphLevel::OBJECT);
-    scenic_core.setText({p});
+    Scenic::Text reg_input("road",
+                           Scenic::GraphLevel::REGION,
+                           Scenic::RegionPriority::HIGH);
+    Scenic::Text obj_input("car", 
+                            Scenic::GraphLevel::OBJECT, 
+                            Scenic::RegionPriority::NONE);
+    scenic_core.setText({obj_input});
     scenic_core.start();
 
     cv::Mat img = cv::imread("../test/test.png", cv::IMREAD_COLOR);
