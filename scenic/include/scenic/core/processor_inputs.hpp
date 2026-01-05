@@ -194,7 +194,6 @@ struct GraphingInput : public BaseInput
 
     cv::Mat getNormalizedLogitsFromClassLabel(size_t label) const
     {
-        std::cout << "Getting Logits for class label: " << label << std::endl;
         cv::Mat logits;
         for (const TextWithResults& e : map) {
             if (e.uid == label) logits = e.logits;

@@ -40,19 +40,16 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
                 cv::Mat logits, conn_logits;
                 if (node_lbl == conn_lbl) {
                     // node labels are the same
-                    std::cout << "Nodes have same label" << std::endl;
                     multiplier = input->getMultiplierFromClassLabel(node_lbl);
                     logits = input->getNormalizedLogitsFromClassLabel(node_lbl);
                 } else if (connected->getNodeLevel() != GraphLevel::OBJECT) {
                     // node labels are diff use the min 
-                    std::cout << "Nodes regions of different classes" << std::endl;
                     float node_mul = input->getMultiplierFromClassLabel(node_lbl);
                     float conn_mul = input->getMultiplierFromClassLabel(conn_lbl);
                     multiplier = std::fmin(node_mul, conn_mul);
                     logits = input->getNormalizedLogitsFromClassLabel(node_lbl);
                     conn_logits = input->getNormalizedLogitsFromClassLabel(conn_lbl);
                 } else {
-                    std::cout << "Region to object" << std::endl;
                     multiplier = input->getMultiplierFromClassLabel(node_lbl); 
                     logits = input->getNormalizedLogitsFromClassLabel(node_lbl);
                 }

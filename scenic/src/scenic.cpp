@@ -75,10 +75,6 @@ void Scenic::graphCallback(std::shared_ptr<Graph> go)
 
 void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
-    std::cout << "Got Segmentation Output" << std::endl;
-    for (const TextWithResults& t : so->map) {
-        std::cout << "Have class: " << t.label << " with uid " << t.uid << std::endl;
-    }
     graph_processor_->push(*so);
 }
 }// namespace Scenic
