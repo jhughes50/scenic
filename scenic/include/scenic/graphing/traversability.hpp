@@ -25,7 +25,7 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
     // we need to get the class of the node and its traversability score
     for (const auto [key, node] : graph.getRegionNodes()) {
         cv::Point p1 = node->getPixelCoordinate();
-        int node_lbl = node->getClassLabel();
+        size_t node_lbl = node->getClassLabel();
         for(const std::shared_ptr<Node> connected : node->getConnectedNodes()) {
             uint64_t cid = connected->getNodeID();
             std::shared_ptr<Edge> edge = graph(key, cid);
@@ -33,7 +33,7 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
                 // ensure edge exists
                 cv::Point p2 = connected->getPixelCoordinate();
                 cv::LineIterator it(input->image, p1, p2);
-                int conn_lbl = connected->getClassLabel();
+                size_t conn_lbl = connected->getClassLabel();
                 
                 // get the correct multiplier and logits
                 float multiplier;

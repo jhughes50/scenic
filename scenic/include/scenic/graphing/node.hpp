@@ -22,7 +22,7 @@ class Node
 {
     public:
         Node() = default;
-        Node(uint64_t id, int cls_label, GraphLevel level, cv::Point pixel);
+        Node(uint64_t id, size_t cls_label, GraphLevel level, cv::Point pixel);
 
         void addConnection(const std::shared_ptr<Node> n);    
         
@@ -31,7 +31,7 @@ class Node
 
         cv::Point getPixelCoordinate() const;
         uint64_t getNodeID() const;
-        int getClassLabel() const;
+        size_t getClassLabel() const;
         GraphLevel getNodeLevel() const;
 
     private:
@@ -39,7 +39,7 @@ class Node
         LatLonPoint latlon_;
         cv::Point pixel_;
 
-        int label_;
+        size_t label_;
         uint64_t nid_;
         GraphLevel level_;
         std::vector<std::shared_ptr<Node>> connections_;

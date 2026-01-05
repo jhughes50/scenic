@@ -77,7 +77,7 @@ class RegionGraph : public Graph
         
         static RegionGraph RegionAnalysis(const GraphingInput& input);
 
-        void setNodes(const AdjacencyOutput& adj, std::map<uchar,cv::Point>& centroids, const int& cls_label);
+        void setNodes(const AdjacencyOutput& adj, std::map<uchar,cv::Point>& centroids, std::unordered_map<uchar,size_t>& cls_label);
 };
 
 class ObjectGraph : public Graph

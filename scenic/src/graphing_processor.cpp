@@ -35,6 +35,9 @@ void GraphingProcessor::processBuffer()
             //} else {
             //    graph = region_graph + object_graph;
             //}
+            for (const auto& [key, node] : graph.getNodes()) {
+                std::cout << "Node with: " << node->getClassLabel() << std::endl;
+            }
             Traversability::addTraversability(graph, raw_input);
             std::cout << "Added addTraversability" << std::endl;
             std::shared_ptr p_graph = std::make_shared<Graph>(graph);

@@ -9,7 +9,7 @@
 
 using namespace Scenic;
 
-Node::Node(uint64_t id, int cls_label, GraphLevel level, cv::Point pixel)
+Node::Node(uint64_t id, size_t cls_label, GraphLevel level, cv::Point pixel)
 {
     nid_ = id;
     label_ = cls_label;
@@ -38,7 +38,7 @@ uint64_t Node::getNodeID() const
     return nid_;
 }
 
-int Node::getClassLabel() const
+size_t Node::getClassLabel() const
 {
     return label_;
 }

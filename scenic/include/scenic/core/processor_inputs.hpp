@@ -183,7 +183,7 @@ struct GraphingInput : public BaseInput
         return map.size();
     }
 
-    cv::Mat getLogitsFromClassLabel(int label) const
+    cv::Mat getLogitsFromClassLabel(size_t label) const
     {
         cv::Mat logits;
         for (const TextWithResults& e : map) {
@@ -192,7 +192,7 @@ struct GraphingInput : public BaseInput
         return logits;
     }
 
-    cv::Mat getNormalizedLogitsFromClassLabel(int label) const
+    cv::Mat getNormalizedLogitsFromClassLabel(size_t label) const
     {
         std::cout << "Getting Logits for class label: " << label << std::endl;
         cv::Mat logits;
@@ -204,7 +204,7 @@ struct GraphingInput : public BaseInput
         return logits;
     }
 
-    cv::Mat getMaskFromClassLabel(int label) const
+    cv::Mat getMaskFromClassLabel(size_t label) const
     {
         cv::Mat mask;
         for (const TextWithResults& e : map) {
@@ -213,7 +213,7 @@ struct GraphingInput : public BaseInput
         return mask;
     }
 
-    float getMultiplierFromClassLabel(int label) const
+    float getMultiplierFromClassLabel(size_t label) const
     {
         float mult = 0.0;
         for (const TextWithResults& e : map) {

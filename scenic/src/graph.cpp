@@ -148,11 +148,12 @@ Scenic::Graph Scenic::operator+(const RegionGraph& rg, const ObjectGraph& og)
 
 
 RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input)
-{
+{   
     size_t input_size = input.getSize();
     RegionGraph region_graph;
 
     int region_count = 0;
+    cv::Mat region_mask = cv::Mat::zeros(input.image.size(), CV_8UC1); 
     for (size_t i = 0; i < input_size; ++i) {
         if (input.map[i].level == GraphLevel::REGION) {
             cv::bitwise_or(region_mask, input.map[i].mask, region_mask);
@@ -168,17 +169,24 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input)
     AdjacencyOutput graph = KMeans::ConnectRegions(output.points, output.voronoi, k);
 
     std::map<uchar, cv::Point> centers;
+    std::unordered_map<uchar, size_t> labels;
     for (const cv::Point p : output.centroids) {
         uchar region_id = output.voronoi.at<uchar>(p);
         centers[region_id] = p;
+        for (size_t i = 0; i < input_size; ++i) {
+            if (input.map[i].mask.at<uchar>(p) == 1) {
+                labels[region_id] = input.map[i].uid;
+                break;
+            }
+        }
     }
 
-    region_graph.setNodes(graph, centers, 0);
+    region_graph.setNodes(graph, centers, labels);
 
     return region_graph;
 }
 
-void RegionGraph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point>& centroids, const int& cls_label)
+void RegionGraph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point>& centroids, std::unordered_map<uchar,size_t>& labels)
 {
     setEmptyStatus(false);
     std::map<uchar, uint64_t> uid_map;
@@ -186,6 +194,7 @@ void RegionGraph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point
         uint64_t uid = UIDGenerator::getNextUID();
         uid_map[key] = uid;
         cv::Point pixel_coord = centroids[key];
+        size_t cls_label = labels[key];
         std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
         nodes_[uid] = n;
     }
