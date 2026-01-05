@@ -41,7 +41,8 @@ class Graph
     public:
         Graph() = default;
         Graph(std::map<uint64_t, std::shared_ptr<Node>> nodes);
-    
+
+        static cv::Mat DrawGraph(Graph& graph, const cv::Mat& image);
         friend Graph operator+(const RegionGraph& rg, const ObjectGraph& og);
 
         // get a node
@@ -57,11 +58,16 @@ class Graph
 
         void setEdgeScore(uint64_t nid1, uint64_t nid2, float score);
 
+        bool isEmpty() const;
+        void setEmptyStatus(bool b); 
+
     protected:
         void initEdges();
 
         std::map<uint64_t, std::shared_ptr<Node>> nodes_;
         std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> edges_;
+        
+        bool empty_{true};
 };
 
 class RegionGraph : public Graph
@@ -81,6 +87,6 @@ class ObjectGraph : public Graph
         
         static ObjectGraph ObjectAnalysis(const GraphingInput& input);
         
-        void setNodes(const std::vector<cv::Point>& centroids, const int& cls_label); 
+        void setNodes(const std::vector<cv::Point>& centroids, const int& cls_label);   
 };
 }

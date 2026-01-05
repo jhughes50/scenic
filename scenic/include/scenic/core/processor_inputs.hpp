@@ -167,9 +167,16 @@ struct SegmentationInput : public BaseInput
     }
 };
 
-struct GraphingInput
+struct GraphingInput : public BaseInput
 {
     GraphingInput() = default;
+
+    GraphingInput(std::unique_ptr<SegmentationInput> input)
+    { 
+        pid = input->pid;
+        odom = input->odom;
+        image = input->image;
+    }
 
     size_t getSize() const
     {
@@ -187,6 +194,7 @@ struct GraphingInput
 
     cv::Mat getNormalizedLogitsFromClassLabel(int label) const
     {
+        std::cout << "Getting Logits for class label: " << label << std::endl;
         cv::Mat logits;
         for (const TextWithResults& e : map) {
             if (e.uid == label) logits = e.logits;

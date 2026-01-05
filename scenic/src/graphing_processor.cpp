@@ -28,11 +28,18 @@ void GraphingProcessor::processBuffer()
             RegionGraph region_graph = RegionGraph::RegionAnalysis(*raw_input);
             ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(*raw_input);
             Graph graph = region_graph + object_graph;
+            //if (region_graph.isEmpty()) {
+            //    std::cout << "Region Graph is Empty" << std::endl;
+            //} else if (object_graph.isEmpty()) {
+            //    std::cout << "Object Graph is Empty" << std::endl;
+            //} else {
+            //    graph = region_graph + object_graph;
+            //}
             Traversability::addTraversability(graph, raw_input);
-
+            std::cout << "Added addTraversability" << std::endl;
             std::shared_ptr p_graph = std::make_shared<Graph>(graph);
 
-            outputCallback(p_graph);
+            if (outputCallback) outputCallback(p_graph);
         }
         else {
             lock.unlock();

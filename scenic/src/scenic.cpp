@@ -41,6 +41,10 @@ void Scenic::stop()
 
 void Scenic::setText(std::vector<Text> text)
 {
+    for (const Text& t : text) {
+        std::cout << " Class: " << t.label << " with uid: " << t.uid << std::endl;
+    }
+
     texts_.text = text;
 }
 
@@ -52,6 +56,7 @@ Graph Scenic::getGraph() const
 void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 {
     // create a pointer to input
+    std::cout << "Got Image Odom Pair" << std::endl;
     int pid = seg_processor_->generateProcessID();
     if (texts_.text.size() > 0) {
         SegmentationInput seg_model_input(pid, img, odom, texts_);
@@ -64,11 +69,16 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 
 void Scenic::graphCallback(std::shared_ptr<Graph> go)
 {
+    std::cout << "Got a Graph" << std::endl;
     graph_ = *go; 
 }
 
 void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
+    std::cout << "Got Segmentation Output" << std::endl;
+    for (const TextWithResults& t : so->map) {
+        std::cout << "Have class: " << t.label << " with uid " << t.uid << std::endl;
+    }
     graph_processor_->push(*so);
 }
 }// namespace Scenic
