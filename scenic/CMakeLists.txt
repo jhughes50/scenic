@@ -33,6 +33,7 @@ add_library(${PROJECT_NAME}
     src/node.cpp
     src/graph.cpp
     src/edge.cpp
+    src/rectifier.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
