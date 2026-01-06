@@ -34,6 +34,9 @@ class Rectifier
         void setWidth(const int& w);
         void setHeight(const int& h);
 
+        void setHorizontalFov(const double& hfov);
+        void setVerticalFov(const double& vfov);
+
         void rectifyMonoImage(const cv::Mat& input, cv::Mat& output) const;
         void calculateOutputIntrinsics();
         
@@ -51,6 +54,9 @@ class Rectifier
         cv::Size getOutputResolution() const;
         Eigen::Isometry3d getTransformBodyCam() const;
 
+        double getHorizontalFov() const;
+        double getVerticalFov() const;
+
     private:
         cv::Mat intrinsics_;
         cv::Mat distortion_;
@@ -62,5 +68,8 @@ class Rectifier
         size_t width_;
         cv::Size resolution_;
         cv::Size output_res_;
+        
+        double hfov_;
+        double vfov_;
 };
 }

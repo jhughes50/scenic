@@ -10,9 +10,10 @@
 int main()
 {
     cv::Mat mask = cv::imread("test_mask.png", cv::IMREAD_GRAYSCALE);
+    Scenic::KMeans kmeans;
     int k = 6;
-    Scenic::KMeansOutput output = Scenic::KMeans::Cluster(mask, k);
-    Scenic::AdjacencyOutput graph = Scenic::KMeans::ConnectRegions(output.points, output.voronoi, k);
+    Scenic::KMeansOutput output = kmeans.cluster(mask, k);
+    Scenic::AdjacencyOutput graph = kmeans.connectRegions(output.points, output.voronoi, k);
 
     for (const auto& [key, vals] : graph.adjacency) {
         std::cout << "Node " << (int)key << " connected to ";

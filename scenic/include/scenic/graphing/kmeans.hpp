@@ -7,8 +7,12 @@
 
 #pragma once
 
+#include <cmath>
+#include <string>
 #include <unordered_set>
 #include <opencv2/opencv.hpp>
+
+#include "scenic/core/rectifier.hpp"
 
 namespace Scenic
 {
@@ -25,10 +29,19 @@ struct AdjacencyOutput
     std::unordered_map<uchar, cv::Point> centroids;
 };
 
-struct KMeans
+class KMeans
 {
-    static KMeansOutput Cluster(const cv::Mat mask, int k);
-    static AdjacencyOutput ConnectRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k);
-    int getNumRegions(); // TODO
+    public:
+        KMeans() = default;
+        KMeans(const std::string& path);
+
+        KMeansOutput cluster(const cv::Mat mask, int k);
+        AdjacencyOutput connectRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k);
+        int getNumClusters(const cv::Mat& mask, int alt);
+
+    private:
+        Rectifier rectifier_;
+        const int max_regions_{10};
+        const double region_area_{50.0};
 };
 }

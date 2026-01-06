@@ -18,7 +18,7 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
         this->segmentationCallback(so); 
     });
 
-    graph_processor_ = std::make_unique<GraphingProcessor>(capacity);
+    graph_processor_ = std::make_unique<GraphingProcessor>(capacity, params_path+"blackfly-5mm.yaml");
     graph_processor_->setCallback([this](std::shared_ptr<Graph> go) {
         this->graphCallback(go);
     });
@@ -42,7 +42,7 @@ void Scenic::stop()
 void Scenic::setText(std::vector<Text> text)
 {
     for (const Text& t : text) {
-        std::cout << " Class: " << t.label << " with uid: " << t.uid << std::endl;
+        std::cout << "[SCENIC] Setting Class: " << t.label << " with uid: " << t.uid << std::endl;
     }
 
     texts_.text = text;

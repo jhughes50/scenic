@@ -9,9 +9,8 @@
 
 using namespace Scenic;
 
-GraphingProcessor::GraphingProcessor(size_t capacity) : ThreadedProcessor<GraphingInput>(capacity)
+GraphingProcessor::GraphingProcessor(size_t capacity, const std::string& rect_path) : ThreadedProcessor<GraphingInput>(capacity), kmeans_(rect_path)
 {
-
 }
 
 void GraphingProcessor::setCallback(std::function<void(std::shared_ptr<Graph>)> callback)
@@ -25,7 +24,7 @@ void GraphingProcessor::processBuffer()
         std::unique_lock<std::mutex> lock(mutex_);
         if (size(Access::PRELOCK) >= min_elem_) {
             std::unique_ptr<GraphingInput> raw_input = pop(Access::PRELOCK);
-            RegionGraph region_graph = RegionGraph::RegionAnalysis(*raw_input);
+            RegionGraph region_graph = RegionGraph::RegionAnalysis(*raw_input, kmeans_);
             ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(*raw_input);
             Graph graph = region_graph + object_graph;
             //if (region_graph.isEmpty()) {
