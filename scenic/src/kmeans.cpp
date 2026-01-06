@@ -9,7 +9,12 @@
 
 using namespace Scenic;
 
-KMeansOutput KMeans::Cluster(const cv::Mat mask, int k)
+KMeans::KMeans(const std::string& rect_path) 
+{
+    rectifier_ = Rectifier::Load(rect_path);
+}
+
+KMeansOutput KMeans::cluster(const cv::Mat mask, int k)
 {
     std::vector<cv::Point> points;
     cv::findNonZero(mask, points);
@@ -51,7 +56,7 @@ KMeansOutput KMeans::Cluster(const cv::Mat mask, int k)
     return output;
 }
 
-AdjacencyOutput KMeans::ConnectRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k)
+AdjacencyOutput KMeans::connectRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k)
 {
     std::unordered_map<uchar, std::unordered_set<uchar>> adjacency_dict;
     
@@ -79,4 +84,20 @@ AdjacencyOutput KMeans::ConnectRegions(const std::vector<cv::Point>& points, con
     AdjacencyOutput output;
     output.adjacency = adjacency_dict;
     return output; 
+}
+
+int KMeans::getNumClusters(const cv::Mat& mask, int alt)
+{
+    double fov = rectifier_.getHorizontalFov();
+    double angle = 180.0 - (90.0+fov/2.0);
+    double gs = 2 * (alt / std::tan(angle * M_PI / 180.0));
+    double gs_pp = gs / mask.cols;
+    double pixel_area = gs_pp * gs_pp;
+
+    cv::Scalar temp = cv::sum(mask);
+    double mask_area_pixels = temp[0];
+    double mask_area_m = mask_area_pixels * pixel_area;
+
+    int num_regions = static_cast<int>(std::floor(mask_area_m / region_area_));
+    return std::min(max_regions_, num_regions);
 }

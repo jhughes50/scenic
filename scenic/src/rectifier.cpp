@@ -37,11 +37,14 @@ Rectifier::Rectifier(std::string path)
         auto t_body_cam = cam["t_body_cam"];
         Eigen::Vector3d t(t_body_cam[0].as<double>(), t_body_cam[1].as<double>(), t_body_cam[2].as<double>());
         setTransformBodyCam(t);
+
+        hfov_ = cam["hfov"].as<double>();
+        vfov_ = cam["vfov"].as<double>();
         
     }
     catch (const std::exception& e)
     {
-        std::cerr << "[TOPOGRAPHER] Error loading calibration file at " << path << ", with error: " << e.what() << std::endl;
+        std::cerr << "[SCENIC] Error loading calibration file at " << path << ", with error: " << e.what() << std::endl;
     }
 }
 
@@ -70,12 +73,18 @@ Rectifier Rectifier::Load(std::string path)
 
         int width = cam["resolution"][0].as<int>();
         int height = cam["resolution"][1].as<int>();
-        auto t_body_cam = cam["T_body_cam"];
-        Eigen::Vector3d t(t_body_cam[0].as<double>(), t_body_cam[1].as<double>(), t_body_cam[2].as<double>());
+        //auto t_body_cam = cam["T_body_cam"];
+        //Eigen::Vector3d t(t_body_cam[0].as<double>(), t_body_cam[1].as<double>(), t_body_cam[2].as<double>());
 
-        rect.setTransformBodyCam(t);
+        //rect.setTransformBodyCam(t);
         rect.setResolution(width, height);
         rect.calculateOutputIntrinsics();
+
+        double hfov = cam["hfov"].as<double>();
+        double vfov = cam["vfov"].as<double>();
+        rect.setHorizontalFov(hfov);
+        rect.setVerticalFov(vfov);
+        std::cout << "[SCENIC] Loaded Camera Params from: " << path << std::endl;
     }
     catch (const std::exception& e)
     {
@@ -127,6 +136,16 @@ void Rectifier::setWidth(const int& w)
 void Rectifier::setHeight(const int& h)
 {
     height_ = h;
+}
+
+void Rectifier::setHorizontalFov(const double& hfov)
+{
+    hfov_ = hfov;
+}
+
+void Rectifier::setVerticalFov(const double& vfov)
+{
+    vfov_ = vfov;
 }
 
 void Rectifier::calculateOutputIntrinsics()
@@ -224,6 +243,16 @@ cv::Size Rectifier::getResolution() const
 cv::Size Rectifier::getOutputResolution() const
 {
     return output_res_;
+}
+
+double Rectifier::getHorizontalFov() const
+{
+    return hfov_;
+}
+
+double Rectifier::getVerticalFov() const
+{
+    return vfov_;
 }
 
 

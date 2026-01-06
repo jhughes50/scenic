@@ -147,7 +147,7 @@ Scenic::Graph Scenic::operator+(const RegionGraph& rg, const ObjectGraph& og)
 }
 
 
-RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input)
+RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmeans)
 {   
     size_t input_size = input.getSize();
     RegionGraph region_graph;
@@ -163,10 +163,9 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input)
     // if there are no regions detected 
     if (region_count == 0) return region_graph;
 
-    //int k = getNumClusters(region_mask);
-    int k = 6;
-    KMeansOutput output = KMeans::Cluster(region_mask, k); 
-    AdjacencyOutput graph = KMeans::ConnectRegions(output.points, output.voronoi, k);
+    int k = kmeans.getNumClusters(region_mask, input.odom.getAltitude());
+    KMeansOutput output = kmeans.cluster(region_mask, k); 
+    AdjacencyOutput graph = kmeans.connectRegions(output.points, output.voronoi, k);
 
     std::map<uchar, cv::Point> centers;
     std::unordered_map<uchar, size_t> labels;
