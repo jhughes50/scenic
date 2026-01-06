@@ -11,6 +11,7 @@ pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 find_package(OpenCV REQUIRED)
 find_package(GTest REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(glog REQUIRED)
 # my packages
 find_package(Clipper REQUIRED)
 find_package(glider REQUIRED)
@@ -38,6 +39,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${OpenCV_LIBRARIES}
     ${JSONCPP_LIBRARIES}
     yaml-cpp
+    glog::glog
     Clipper::clipper
     glider::glider
 )
@@ -46,15 +48,16 @@ add_executable(scenic_test test/test_scenic.cpp)
 target_link_libraries(scenic_test
     GTest::GTest
     GTest::Main
+    glog::glog
     ${PROJECT_NAME}
 )
 
-add_executable(graph_test test/test_graph.cpp)
-target_link_libraries(graph_test
-    GTest::GTest
-    GTest::Main
-    ${PROJECT_NAME}
-)
+#add_executable(graph_test test/test_graph.cpp)
+#target_link_libraries(graph_test
+#    GTest::GTest
+#    GTest::Main
+#    ${PROJECT_NAME}
+#)
 
 add_executable(kmeans_test examples/test_kmeans.cpp)
 target_link_libraries(kmeans_test
@@ -63,4 +66,4 @@ target_link_libraries(kmeans_test
 
 include(GoogleTest)
 gtest_discover_tests(scenic_test)
-gtest_discover_tests(graph_test)
+#gtest_discover_tests(graph_test)

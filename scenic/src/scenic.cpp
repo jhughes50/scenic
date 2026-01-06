@@ -17,6 +17,11 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
     seg_processor_->setCallback([this](std::shared_ptr<GraphingInput> so) { 
         this->segmentationCallback(so); 
     });
+
+    graph_processor_ = std::make_unique<GraphingProcessor>(capacity);
+    graph_processor_->setCallback([this](std::shared_ptr<Graph> go) {
+        this->graphCallback(go);
+    });
 }
 
 Scenic::~Scenic()
@@ -34,32 +39,42 @@ void Scenic::stop()
     seg_processor_->stop();
 }   
 
-void Scenic::setText(const std::vector<std::pair<std::string,GraphLevel>>& text)
+void Scenic::setText(std::vector<Text> text)
 {
+    for (const Text& t : text) {
+        std::cout << " Class: " << t.label << " with uid: " << t.uid << std::endl;
+    }
 
-    texts_ = TextMap(text);
+    texts_.text = text;
+}
+
+Graph Scenic::getGraph() const
+{
+    return graph_;
 }
 
 void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 {
     // create a pointer to input
+    std::cout << "Got Image Odom Pair" << std::endl;
     int pid = seg_processor_->generateProcessID();
     if (texts_.text.size() > 0) {
         SegmentationInput seg_model_input(pid, img, odom, texts_);
         seg_processor_->push(seg_model_input);
     }
     else {
-        // TODO shame user for trying to inference without setting text
+        std::cerr << "[SCENIC] Trying to inference before text was set" << std::endl;
     }
+}
+
+void Scenic::graphCallback(std::shared_ptr<Graph> go)
+{
+    std::cout << "Got a Graph" << std::endl;
+    graph_ = *go; 
 }
 
 void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
-    cv::imshow("mask", so->logits[0]);
-    cv::waitKey(0);
-    cv::Mat mask_8bit;
-    so->masks[0].convertTo(mask_8bit, CV_8U, 255);  // Scale [0,1] to [0,255]
-    cv::imwrite("test_mask.png", mask_8bit);
-    // TODO push to grapher
+    graph_processor_->push(*so);
 }
 }// namespace Scenic

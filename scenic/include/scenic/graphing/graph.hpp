@@ -41,21 +41,33 @@ class Graph
     public:
         Graph() = default;
         Graph(std::map<uint64_t, std::shared_ptr<Node>> nodes);
-    
+
+        static cv::Mat DrawGraph(Graph& graph, const cv::Mat& image);
         friend Graph operator+(const RegionGraph& rg, const ObjectGraph& og);
 
         // get a node
         std::shared_ptr<Node> operator[](uint64_t nid);
+        std::shared_ptr<Node> getNode(uint64_t nid);
         // get an edge
         std::shared_ptr<Edge> operator()(uint64_t nid1, uint64_t nid2);
-
-        std::shared_ptr<Node> getNode(uint64_t nid);
-        //Edge getEdge(const uint64_t& nid1, const uint64_t nid2) const;
-
+        std::shared_ptr<Edge> getEdge(uint64_t nid1, uint64_t nid2);
+        
         std::map<uint64_t, std::shared_ptr<Node>> getNodes() const;
+        std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> getEdges() const;
+        std::map<uint64_t, std::shared_ptr<Node>> getRegionNodes() const;
+
+        void setEdgeScore(uint64_t nid1, uint64_t nid2, float score);
+
+        bool isEmpty() const;
+        void setEmptyStatus(bool b); 
 
     protected:
-        std::map<uint64_t, std::shared_ptr<Node>> nodes_; 
+        void initEdges();
+
+        std::map<uint64_t, std::shared_ptr<Node>> nodes_;
+        std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> edges_;
+        
+        bool empty_{true};
 };
 
 class RegionGraph : public Graph
@@ -65,7 +77,7 @@ class RegionGraph : public Graph
         
         static RegionGraph RegionAnalysis(const GraphingInput& input);
 
-        void setNodes(const AdjacencyOutput& adj, std::map<uchar,cv::Point>& centroids, const int& cls_label);
+        void setNodes(const AdjacencyOutput& adj, std::map<uchar,cv::Point>& centroids, std::unordered_map<uchar,size_t>& cls_label);
 };
 
 class ObjectGraph : public Graph
@@ -75,6 +87,6 @@ class ObjectGraph : public Graph
         
         static ObjectGraph ObjectAnalysis(const GraphingInput& input);
         
-        void setNodes(const std::vector<cv::Point>& centroids, const int& cls_label); 
+        void setNodes(const std::vector<cv::Point>& centroids, const int& cls_label);   
 };
 }
