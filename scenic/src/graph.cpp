@@ -54,7 +54,10 @@ std::shared_ptr<Edge> Graph::operator()(uint64_t nid1, uint64_t nid2)
 std::shared_ptr<Edge> Graph::getEdge(uint64_t nid1, uint64_t nid2)
 {
     std::pair<uint64_t, uint64_t> node_pair(nid1, nid2);
-    std::shared_ptr<Edge> edge = edges_[node_pair];
+    std::shared_ptr<Edge> edge = nullptr;
+    if (edges_.find(node_pair) != edges_.end()) {
+        edge = edges_[node_pair];
+    }
 
     return edge;
 }
@@ -163,7 +166,7 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmea
     // if there are no regions detected 
     if (region_count == 0) return region_graph;
 
-    int k = kmeans.getNumClusters(region_mask, input.odom.getAltitude());
+    int k = kmeans.getNumClusters(region_mask,30);// input.odom.getAltitude());
     KMeansOutput output = kmeans.cluster(region_mask, k); 
     AdjacencyOutput graph = kmeans.connectRegions(output.points, output.voronoi, k);
 

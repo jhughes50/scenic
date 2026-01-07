@@ -23,7 +23,7 @@ struct Traversability
 inline void Traversability::addTraversability(Graph& graph, const std::unique_ptr<GraphingInput>& input)
 {
     // we need to get the class of the node and its traversability score
-    for (const auto [key, node] : graph.getRegionNodes()) {
+    for (const auto& [key, node] : graph.getRegionNodes()) {
         cv::Point p1 = node->getPixelCoordinate();
         size_t node_lbl = node->getClassLabel();
         for(const std::shared_ptr<Node> connected : node->getConnectedNodes()) {
@@ -50,6 +50,7 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
                     logits = input->getNormalizedLogitsFromClassLabel(node_lbl);
                     conn_logits = input->getNormalizedLogitsFromClassLabel(conn_lbl);
                 } else {
+                    // edge is to an object
                     multiplier = input->getMultiplierFromClassLabel(node_lbl); 
                     logits = input->getNormalizedLogitsFromClassLabel(node_lbl);
                 }
@@ -75,7 +76,7 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
             else {
                 // todo update this
                 std::cerr << "[SCENIC] Attempting to score an edge that does not exist" << std::endl;
-            }
+            } 
         }
     }
 }
