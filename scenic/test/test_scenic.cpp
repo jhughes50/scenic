@@ -26,23 +26,26 @@ TEST(ScenicTestSuite, TestClipperViaCore)
     Scenic::Text reg_input("road",
                            Scenic::GraphLevel::REGION,
                            Scenic::RegionPriority::HIGH);
-    Scenic::Text obj_input("car", 
+    Scenic::Text grs_input("car", 
                             Scenic::GraphLevel::OBJECT, 
                             Scenic::RegionPriority::NONE);
-    std::cout << "ready to start" << std::endl;
-    scenic_core.setText({reg_input});
+    scenic_core.setText({reg_input, grs_input});
     scenic_core.start();
 
-    std::cout << " Reading Image" << std::endl;
     cv::Mat img = cv::imread("../test/test.png", cv::IMREAD_COLOR);
     cv::resize(img, img, cv::Size(), 0.25, 0.25);
 
-    std::cout << "Pushing to Scenic Core" << std::endl;
     scenic_core.push(img, odom);
-    std::cout << "DONE" << std::endl;
     auto wake_time = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     std::this_thread::sleep_until(wake_time);
     Scenic::Graph graph = scenic_core.getGraph();
+
+    for (const auto& [key, node] : graph.getRegionNodes()) {
+        for (const auto& conn : node->getConnectedNodes()) {
+            std::cout << "Region Node : " << node->getNodeID() << " connected to " << conn->getNodeID() << std::endl;
+        }
+    }
+
     for (const auto [key, edge] : graph.getEdges()) {
         std::cout << "Node: " << key.first << " <==> Node: " << key.second << " with score: " << edge->getScore() << std::endl;
     }

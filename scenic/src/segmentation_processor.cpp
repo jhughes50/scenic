@@ -35,7 +35,6 @@ void SegmentationProcessor::processBuffer()
             //todo update with odom
             std::vector<TextWithResults> text_map;
             for (size_t i = 0; i < input_size; i++) {
-                std::cout << "Processing class: " << raw_input->texts.text[i].uid << std::endl;
                 at::Tensor raw_logits = model_.inference(image_output.activations,
                                                          processed_inputs.tokens[i],
                                                          processed_inputs.masks[i]);
@@ -46,11 +45,9 @@ void SegmentationProcessor::processBuffer()
                 cv::Mat mask;
                 switch (raw_input->texts.text[i].level) {
                     case OBJECT:
-                        std::cout << "adding object" << std::endl;
                         cv::threshold(cv_logits, mask, params_.object_threshold, 1.0, cv::THRESH_BINARY);
                         break;
                     case REGION:
-                        std::cout << "adding region" << std::endl;
                         cv::threshold(cv_logits, mask, params_.region_threshold, 1.0, cv::THRESH_BINARY);
                         break;
                 }
