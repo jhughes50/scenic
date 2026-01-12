@@ -23,6 +23,7 @@ struct Traversability
 inline void Traversability::addTraversability(Graph& graph, const std::unique_ptr<GraphingInput>& input)
 {
     // we need to get the class of the node and its traversability score
+    std::cout << "Assessing Traversability" << std::endl;
     for (const auto& [key, node] : graph.getRegionNodes()) {
         cv::Point p1 = node->getPixelCoordinate();
         size_t node_lbl = node->getClassLabel();
@@ -59,6 +60,11 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
                 for (int i = 0; i < it.count; i++, ++it) {
                     cv::Point pos = it.pos();
 
+                    if (pos.y < 0 || pos.y >= logits.rows || pos.x < 0 || pos.x >= logits.cols) {
+                        std::cout << "Pos out of bounds" << std::endl;
+                        continue; 
+                    }
+
                     if (conn_logits.empty()) {
                         float l = logits.at<float>(pos);
                         sum += l;
@@ -79,5 +85,6 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
             } 
         }
     }
+    std::cout << "Done Assessing Traversability" << std::endl;
 }
 }

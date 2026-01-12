@@ -47,7 +47,7 @@ void Scenic::setText(std::vector<Text> text)
     for (const Text& t : text) {
         std::cout << "[SCENIC] Setting Class: " << t.label << " with uid: " << t.uid << std::endl;
     }
-
+    initialized_ = true;
     texts_.text = text;
 }
 
@@ -60,8 +60,8 @@ std::shared_ptr<Graph> Scenic::getGraph()
 void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 {
     // create a pointer to input
-    std::cout << "Got Image Odom Pair" << std::endl;
     int pid = seg_processor_->generateProcessID();
+    std::cout << "Got Image Odom Pair With PID " << pid << std::endl;
     if (texts_.text.size() > 0) {
         pid_img_map_.insert(pid, img.clone());
         SegmentationInput seg_model_input(pid, img, odom, texts_);
@@ -74,7 +74,8 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 
 void Scenic::graphCallback(std::shared_ptr<Graph> go)
 {
-    std::cout << "Got a Graph" << std::endl;
+    std::cout << "Got a graph" << std::endl;
+    //std::cout << "Got a Graph with PID " << graph_->getProcessID() << std::endl;
     graph_ = go;
     new_graph_ = true;
 }
@@ -99,8 +100,11 @@ cv::Mat Scenic::getGraphImage() const
     cv::Mat display;
     if (graph_) {
         int pid = graph_->getProcessID();
-        cv::Mat img = pid_img_map_.get(pid); 
+        std::cout << "Got PID " << pid << std::endl;
+        cv::Mat img = pid_img_map_.get(pid);
+        std::cout << "got image and drawing pic" << std::endl;
         display = Graph::DrawGraph(graph_, img);
+        std::cout << "drew graph" << std::endl;
     }
     return display;
 }
