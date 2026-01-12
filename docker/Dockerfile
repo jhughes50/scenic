@@ -81,6 +81,8 @@ RUN sudo apt update \
 RUN sudo apt install -y ros-jazzy-gtsam
 USER $USER
 
+RUN mkdir -p ws/src
+
 ENV CUDA_HOME=/usr/local/cuda
 RUN sudo chown $USER:$USER .bashrc \
  && echo 'export PS1="\[$(tput setaf 2; tput bold)\]\u\[$(tput setaf 7)\]@\[$(tput setaf 3)\]\h\[$(tput setaf 7)\]:\[$(tput setaf 4)\]\W\[$(tput setaf 7)\]$ \[$(tput sgr0)\]"' >> ~/.bashrc

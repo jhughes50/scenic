@@ -12,7 +12,8 @@ namespace Scenic
 
 Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string& config_path)
 {
-    std::string params_path = "../config/";
+    pid_img_map_.setCapacity(capacity);
+    std::string params_path = "/usr/local/share/scenic/config/";
     seg_processor_ = std::make_unique<SegmentationProcessor>(capacity, params_path, model_path, config_path);
     seg_processor_->setCallback([this](std::shared_ptr<GraphingInput> so) { 
         this->segmentationCallback(so); 
@@ -32,11 +33,13 @@ Scenic::~Scenic()
 void Scenic::start()
 {
     seg_processor_->start();
+    graph_processor_->start();
 }
 
 void Scenic::stop()
 {
     seg_processor_->stop();
+    graph_processor_->stop();
 }   
 
 void Scenic::setText(std::vector<Text> text)
@@ -48,8 +51,9 @@ void Scenic::setText(std::vector<Text> text)
     texts_.text = text;
 }
 
-Graph Scenic::getGraph() const
+std::shared_ptr<Graph> Scenic::getGraph()
 {
+    new_graph_ = false;
     return graph_;
 }
 
@@ -59,6 +63,7 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
     std::cout << "Got Image Odom Pair" << std::endl;
     int pid = seg_processor_->generateProcessID();
     if (texts_.text.size() > 0) {
+        pid_img_map_.insert(pid, img.clone());
         SegmentationInput seg_model_input(pid, img, odom, texts_);
         seg_processor_->push(seg_model_input);
     }
@@ -70,11 +75,33 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 void Scenic::graphCallback(std::shared_ptr<Graph> go)
 {
     std::cout << "Got a Graph" << std::endl;
-    graph_ = *go; 
+    graph_ = go;
+    new_graph_ = true;
 }
 
 void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
     graph_processor_->push(*so);
+}
+
+bool Scenic::isInitialized() const
+{
+    return initialized_;
+}
+
+bool Scenic::isNewGraph() const
+{
+    return new_graph_;
+}
+
+cv::Mat Scenic::getGraphImage() const
+{
+    cv::Mat display;
+    if (graph_) {
+        int pid = graph_->getProcessID();
+        cv::Mat img = pid_img_map_.get(pid); 
+        display = Graph::DrawGraph(graph_, img);
+    }
+    return display;
 }
 }// namespace Scenic

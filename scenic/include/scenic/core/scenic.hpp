@@ -13,6 +13,7 @@
 #include "scenic/core/segmentation_processor.hpp"
 #include "scenic/core/graphing_processor.hpp"
 #include "scenic/graphing/graph.hpp"
+#include "scenic/utils/fixed_map.hpp"
 
 namespace Scenic
 {
@@ -27,18 +28,27 @@ class Scenic
         void stop();
         
         void setText(std::vector<Text> text);
-        Graph getGraph() const;
+        std::shared_ptr<Graph> getGraph();
         void push(const cv::Mat& img, const Glider::Odometry& odom);
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
-        void graphCallback(std::shared_ptr<Graph> go);        
-        // todo implement these
-        //void homographyCallback(nullptr);
+        void graphCallback(std::shared_ptr<Graph> go);
+        
+        bool isInitialized() const;
+        bool isNewGraph() const;
+
+        cv::Mat getGraphImage() const;
 
     private:
         TextMap texts_;
-        Graph graph_;
+        std::shared_ptr<Graph> graph_;
+    
         std::unique_ptr<SegmentationProcessor> seg_processor_;
-        std::unique_ptr<GraphingProcessor> graph_processor_;  
+        std::unique_ptr<GraphingProcessor> graph_processor_; 
+
+        bool initialized_{false};
+        bool new_graph_{false};
+
+        FixedHashMap<int, cv::Mat> pid_img_map_;
 };
 } // namespace Scenic

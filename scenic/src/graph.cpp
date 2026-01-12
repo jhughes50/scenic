@@ -87,7 +87,17 @@ bool Graph::isEmpty() const
 void Graph::setEmptyStatus(bool b)
 {
     empty_ = b;
-} 
+}
+
+int Graph::getProcessID() const
+{
+    return pid_;
+}
+
+void Graph::setProcessID(int p)
+{
+    pid_ = p;
+}
 
 cv::Mat Graph::DrawGraph(Graph& graph, const cv::Mat& image)
 {
@@ -102,6 +112,30 @@ cv::Mat Graph::DrawGraph(Graph& graph, const cv::Mat& image)
         }
         for (const uint64_t& nid : node->getConnectedIDs()) {
             cv::Point p = graph[nid]->getPixelCoordinate();
+            if (node->getNodeLevel() == REGION) {
+                cv::line(display, k, p, cv::Scalar(185, 128, 41), 2);
+            } else if (node->getNodeLevel() == OBJECT) {
+                cv::line(display, k, p, cv::Scalar(128, 185, 41), 2);
+            }
+        }
+    }
+
+    return display;
+}
+
+cv::Mat Graph::DrawGraph(const std::shared_ptr<Graph> graph, const cv::Mat& image)
+{
+    cv::Mat display = image.clone();
+    
+    for (const auto& [key, node] : graph->getNodes()) {
+        cv::Point k = graph->getNode(key)->getPixelCoordinate();
+        if (node->getNodeLevel() == REGION) {
+            cv::circle(display, k, 5, cv::Scalar(185, 128, 41), -1);
+        } else if (node->getNodeLevel() == OBJECT) {
+            cv::circle(display, k, 5, cv::Scalar(128, 185, 41), -1); 
+        }
+        for (const uint64_t& nid : node->getConnectedIDs()) {
+            cv::Point p = graph->getNode(nid)->getPixelCoordinate();
             if (node->getNodeLevel() == REGION) {
                 cv::line(display, k, p, cv::Scalar(185, 128, 41), 2);
             } else if (node->getNodeLevel() == OBJECT) {
