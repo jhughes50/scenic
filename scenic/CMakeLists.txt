@@ -13,28 +13,53 @@ find_package(OpenCV REQUIRED)
 find_package(GTest REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(glog REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(GTSAM REQUIRED)
+find_package(GTSAM_UNSTABLE REQUIRED)
+
 # my packages
 find_package(Clipper REQUIRED)
-find_package(glider REQUIRED)
 
 include_directories(
     include
     ${OpenCV_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
+    ${GTSAM_INCLUDE_DIR}
     ${yaml-cpp_INCLUDE_DIRS}
 )
+# GLIDER LIB
+add_library(glider SHARED
+    src/glider/parameters.cpp
+    src/glider/time.cpp
+    src/glider/differential_gps.cpp
+    src/glider/odometry.cpp
+    src/glider/odometry_with_covariance.cpp
+    src/glider/factor_manager.cpp
+    src/glider/glider.cpp
+)
 
+target_link_libraries(glider PUBLIC
+    Eigen3::Eigen
+    glog::glog
+    gtsam
+    gtsam_unstable
+    yaml-cpp
+    tbb
+)
+
+# SCENIC LIB
 add_library(${PROJECT_NAME} SHARED
-    src/kmeans.cpp
-    src/params.cpp
-    src/segmentation_processor.cpp
-    src/graphing_processor.cpp
-    src/scenic.cpp
-    src/node.cpp
-    src/graph.cpp
-    src/edge.cpp
-    src/rectifier.cpp
+    src/scenic/kmeans.cpp
+    src/scenic/params.cpp
+    src/scenic/segmentation_processor.cpp
+    src/scenic/graphing_processor.cpp
+    src/scenic/scenic.cpp
+    src/scenic/node.cpp
+    src/scenic/graph.cpp
+    src/scenic/edge.cpp
+    src/scenic/rectifier.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -42,8 +67,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${JSONCPP_LIBRARIES}
     yaml-cpp
     glog::glog
+    glider
     Clipper::clipper
-    glider::glider
 )
 
 add_executable(scenic_test test/test_scenic.cpp)

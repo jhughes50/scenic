@@ -1,0 +1,11 @@
+glider_node:
+  ros__parameters:
+    publishers:
+      rate: 0.0
+      nav_sat_fix: false
+      viz:
+        use: true
+        origin_easting: 482933.2819920078
+        origin_northing: 4421345.135559781
+    subscribers:
+      use_odom: false
