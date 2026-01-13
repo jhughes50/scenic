@@ -9,10 +9,10 @@ docker run -it --rm \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v "/home/`whoami`/Data/glider:/home/`whoami`/data" \
     -v "`pwd`/../clipper/cpp:/home/`whoami`/clipper" \
-    -v "`pwd`/../glider/glider:/home/`whoami`/glider" \
+    -v "`pwd`/../lightgluestick:/home/`whoami`/lightgluestick" \
     -v "`pwd`/../scenic:/home/`whoami`/scenic" \
-    -v "`pwd`/../../scenic-ros:/home/`whoami`/ws/src/scenic-ros" \
-    -v "`pwd`/../../scenic-msgs:/home/`whoami`/ws/src/scenic-msgs" \
+    -v "`pwd`/../../scenic-ros/scenic-ros:/home/`whoami`/ws/src/scenic-ros" \
+    -v "`pwd`/../../scenic-ros/scenic-msgs:/home/`whoami`/ws/src/scenic-msgs" \
     -e DISPLAY=$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
     -e XAUTHORITY=$XAUTH \
