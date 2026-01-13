@@ -4,7 +4,7 @@
 *
 * @About a threaded wrapper around node graphing
 */
-
+#include <glog/logging.h>
 #include <opencv2/opencv.hpp>
 
 #include "scenic/graphing/graph.hpp"

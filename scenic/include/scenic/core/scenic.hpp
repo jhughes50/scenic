@@ -9,7 +9,6 @@
 
 #include <glider/core/odometry.hpp>
 
-
 #include "scenic/core/segmentation_processor.hpp"
 #include "scenic/core/graphing_processor.hpp"
 #include "scenic/graphing/graph.hpp"

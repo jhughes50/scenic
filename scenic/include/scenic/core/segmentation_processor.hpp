@@ -5,7 +5,7 @@
 * @About Wrap the segmentation model in a 
 * threaded processor.
 */
-
+#include <glog/logging.h>
 #include <opencv2/opencv.hpp>
 #include <clipper/clipper_model.hpp>
 

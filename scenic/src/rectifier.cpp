@@ -44,7 +44,7 @@ Rectifier::Rectifier(std::string path)
     }
     catch (const std::exception& e)
     {
-        std::cerr << "[SCENIC] Error loading calibration file at " << path << ", with error: " << e.what() << std::endl;
+        LOG(FATAL) << "[SCENIC] Error loading calibration file at " << path << ", with error: " << e.what();
     }
 }
 
@@ -84,11 +84,11 @@ Rectifier Rectifier::Load(std::string path)
         double vfov = cam["vfov"].as<double>();
         rect.setHorizontalFov(hfov);
         rect.setVerticalFov(vfov);
-        std::cout << "[SCENIC] Loaded Camera Params from: " << path << std::endl;
+        LOG(INFO) << "[SCENIC] Loaded Camera Params from: " << path;
     }
     catch (const std::exception& e)
     {
-        std::cerr << "[SCENIC] Error loading calibration file at " << path << ", with error: " << e.what() << std::endl;
+        LOG(FATAL) << "[SCENIC] Error loading calibration file at " << path << ", with error: " << e.what();
     }
 
     return rect;

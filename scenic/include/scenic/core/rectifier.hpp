@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <glog/logging.h>
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
