@@ -16,9 +16,12 @@ find_package(glog REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(GTSAM_UNSTABLE REQUIRED)
-
+find_package(Ceres REQUIRED)
+find_package(pybind11 REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Development)
 # my packages
 find_package(Clipper REQUIRED)
+find_package(lgs REQUIRED)
 
 include_directories(
     include
@@ -29,6 +32,24 @@ include_directories(
     ${GTSAM_INCLUDE_DIR}
     ${yaml-cpp_INCLUDE_DIRS}
 )
+
+# STICKY VO LIB
+add_library(stickyvo SHARED
+    src/stickyvo/core.cpp
+    src/stickyvo/track_db.cpp
+    src/stickyvo/triangulation.cpp
+    src/stickyvo/pnp.cpp
+    src/stickyvo/local_refine.cpp
+    src/stickyvo/bundle_adjustment.cpp
+    src/stickyvo/vo_frontend.cpp
+)
+
+target_link_libraries(stickyvo PUBLIC
+    Eigen3::Eigen
+    ${OpenCV_LIBRARIES}
+    Ceres::ceres
+)
+
 # GLIDER LIB
 add_library(glider SHARED
     src/glider/parameters.cpp
@@ -67,8 +88,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${JSONCPP_LIBRARIES}
     yaml-cpp
     glog::glog
-    glider
     Clipper::clipper
+    lgs::lgs
+    glider
+    stickyvo
 )
 
 add_executable(scenic_test test/test_scenic.cpp)
@@ -95,7 +118,7 @@ include(GoogleTest)
 gtest_discover_tests(scenic_test)
 #gtest_discover_tests(graph_test)
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} glider stickyvo
   EXPORT ${PROJECT_NAME}Targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
