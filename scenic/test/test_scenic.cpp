@@ -38,15 +38,15 @@ TEST(ScenicTestSuite, TestClipperViaCore)
     scenic_core.push(img, odom);
     auto wake_time = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     std::this_thread::sleep_until(wake_time);
-    Scenic::Graph graph = scenic_core.getGraph();
+    std::shared_ptr<Scenic::Graph> graph = scenic_core.getGraph();
 
-    for (const auto& [key, node] : graph.getRegionNodes()) {
+    for (const auto& [key, node] : graph->getRegionNodes()) {
         for (const auto& conn : node->getConnectedNodes()) {
             std::cout << "Region Node : " << node->getNodeID() << " connected to " << conn->getNodeID() << std::endl;
         }
     }
 
-    for (const auto [key, edge] : graph.getEdges()) {
+    for (const auto [key, edge] : graph->getEdges()) {
         std::cout << "Node: " << key.first << " <==> Node: " << key.second << " with score: " << edge->getScore() << std::endl;
     }
     cv::Mat display = Scenic::Graph::DrawGraph(graph, img);

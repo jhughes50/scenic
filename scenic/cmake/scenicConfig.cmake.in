@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+# Find dependencies
+include(CMakeFindDependencyMacro)
+
+find_dependency(OpenCV REQUIRED)
+find_dependency(glog REQUIRED)
+find_dependency(yaml-cpp REQUIRED)
+find_dependency(Clipper REQUIRED)
+find_dependency(glider REQUIRED)
+
+# Include the targets file
+include("${CMAKE_CURRENT_LIST_DIR}/scenicTargets.cmake")
+
+check_required_components(glider)

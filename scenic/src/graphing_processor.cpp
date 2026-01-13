@@ -27,11 +27,15 @@ void GraphingProcessor::processBuffer()
             RegionGraph region_graph = RegionGraph::RegionAnalysis(*raw_input, kmeans_);
             ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(*raw_input);
             Graph graph = region_graph + object_graph;
-            //if (region_graph.isEmpty()) {
-            //    std::cout << "Region Graph is Empty" << std::endl;
-            //} else if (object_graph.isEmpty()) {
-            //    std::cout << "Object Graph is Empty" << std::endl;
-            //} else {
+            int pid = raw_input->pid;
+            std::cout << "Generating Graph for PID " << pid << std::endl;
+            graph.setProcessID(pid);
+            if (region_graph.isEmpty()) {
+                std::cout << "Region Graph is Empty" << std::endl;
+                continue;
+            } else if (object_graph.isEmpty()) {
+                std::cout << "Object Graph is Empty" << std::endl;
+            } 
             //    graph = region_graph + object_graph;
             //}
             Traversability::addTraversability(graph, raw_input);

@@ -43,6 +43,7 @@ class Graph
         Graph(std::map<uint64_t, std::shared_ptr<Node>> nodes);
 
         static cv::Mat DrawGraph(Graph& graph, const cv::Mat& image);
+        static cv::Mat DrawGraph(const std::shared_ptr<Graph> graph, const cv::Mat& image);
         friend Graph operator+(const RegionGraph& rg, const ObjectGraph& og);
 
         // get a node
@@ -60,6 +61,8 @@ class Graph
 
         bool isEmpty() const;
         void setEmptyStatus(bool b); 
+        int getProcessID() const; 
+        void setProcessID(int p);
 
     protected:
         void initEdges();
@@ -68,6 +71,7 @@ class Graph
         std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> edges_;
         
         bool empty_{true};
+        int pid_;
 };
 
 class RegionGraph : public Graph
