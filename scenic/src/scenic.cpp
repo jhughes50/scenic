@@ -81,7 +81,7 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 
 void Scenic::graphCallback(std::shared_ptr<Graph> go)
 {
-    LOG(INFO) << "[SCENIC] Finished PID " << go->getProcessID();
+    LOG(INFO) << "[SCENIC] Finished PID: " << go->getProcessID();
     graph_ = go;
     new_graph_ = true;
 }
