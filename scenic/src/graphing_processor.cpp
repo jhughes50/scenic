@@ -28,13 +28,12 @@ void GraphingProcessor::processBuffer()
             ObjectGraph object_graph = ObjectGraph::ObjectAnalysis(*raw_input);
             Graph graph = region_graph + object_graph;
             int pid = raw_input->pid;
-            std::cout << "Generating Graph for PID " << pid << std::endl;
             graph.setProcessID(pid);
             if (region_graph.isEmpty()) {
-                std::cout << "Region Graph is Empty" << std::endl;
+                LOG(WARNING) << "[SCENIC] Region Graph is Empty at PID" << pid;
                 continue;
             } else if (object_graph.isEmpty()) {
-                std::cout << "Object Graph is Empty" << std::endl;
+                LOG(WARNING) << "[SCENIC] Object Graph is Empty at PID" << pid;
             } 
             //    graph = region_graph + object_graph;
             //}

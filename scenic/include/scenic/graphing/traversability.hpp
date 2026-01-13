@@ -8,7 +8,8 @@
 #include <algorithm>
 #include <memory>
 #include <opencv2/opencv.hpp>
-
+#include <glog/logging.h>
+            
 #include "scenic/core/processor_inputs.hpp"
 #include "scenic/graphing/graph.hpp"
 
@@ -23,7 +24,6 @@ struct Traversability
 inline void Traversability::addTraversability(Graph& graph, const std::unique_ptr<GraphingInput>& input)
 {
     // we need to get the class of the node and its traversability score
-    std::cout << "Assessing Traversability" << std::endl;
     for (const auto& [key, node] : graph.getRegionNodes()) {
         cv::Point p1 = node->getPixelCoordinate();
         size_t node_lbl = node->getClassLabel();
@@ -57,11 +57,15 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
                 }
 
                 float sum = 0.0;
+                bool warned = false;
                 for (int i = 0; i < it.count; i++, ++it) {
                     cv::Point pos = it.pos();
 
                     if (pos.y < 0 || pos.y >= logits.rows || pos.x < 0 || pos.x >= logits.cols) {
-                        std::cout << "Pos out of bounds" << std::endl;
+                        if (!warned) {
+                            LOG(WARNING) << "[SCENIC] Node Pixel Coord Out Of Bounds";
+                            warned = true;
+                        }
                         continue; 
                     }
 
@@ -81,10 +85,9 @@ inline void Traversability::addTraversability(Graph& graph, const std::unique_pt
             }
             else {
                 // todo update this
-                std::cerr << "[SCENIC] Attempting to score an edge that does not exist" << std::endl;
+                LOG(WARNING) << "[SCENIC] Attempting to score an edge that does not exist";
             } 
         }
     }
-    std::cout << "Done Assessing Traversability" << std::endl;
 }
 }
