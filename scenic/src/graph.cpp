@@ -199,10 +199,18 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmea
     }
     // if there are no regions detected 
     if (region_count == 0) return region_graph;
-
-    int k = kmeans.getNumClusters(region_mask,30);// input.odom.getAltitude());
-    KMeansOutput output = kmeans.cluster(region_mask, k); 
-    AdjacencyOutput graph = kmeans.connectRegions(output.points, output.voronoi, k);
+   
+    KMeansOutput output;
+    AdjacencyOutput graph;
+    try {
+        int k = kmeans.getNumClusters(region_mask,30);// input.odom.getAltitude());
+        output = kmeans.cluster(region_mask, k); 
+        graph = kmeans.connectRegions(output.points, output.voronoi, k);
+    } catch (const cv::Exception& e) {
+        // there was no region detected
+        // so return and empty graph.
+        return region_graph;
+    }
 
     std::map<uchar, cv::Point> centers;
     std::unordered_map<uchar, size_t> labels;

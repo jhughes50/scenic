@@ -32,6 +32,7 @@ void GraphingProcessor::processBuffer()
             graph.setProcessID(pid);
             if (region_graph.isEmpty()) {
                 std::cout << "Region Graph is Empty" << std::endl;
+                continue;
             } else if (object_graph.isEmpty()) {
                 std::cout << "Object Graph is Empty" << std::endl;
             } 
