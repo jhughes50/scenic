@@ -4,6 +4,7 @@
 #include <deque>
 #include <optional>
 #include <vector>
+#include <yaml-cpp/yaml.h>
 
 #include "stickyvo/types.hpp"
 #include "stickyvo/track_db.hpp"
@@ -48,19 +49,36 @@ public:
     double ba_max_motion_thresh;
     double pnp_max_motion_thresh;
 
-    Params()
-      : min_inliers(15),
-        ransac_thresh_px(10.0),
-        min_tracked_features(60),
-        min_keyframe_parallax_deg(1.5),
-        max_frames_between_keyframes(30),
-        tri_min_parallax_deg(1.5),
-        tri_max_reproj_err_px(10.0),
-        map_max_keyframes(20),
-        pose_history_max(5000),
-        ba_max_cost_increase(2.0),
-        ba_max_motion_thresh(10.0),
-        pnp_max_motion_thresh(20.0) {}
+    Params() = default;
+    Params(const std::string& path)
+    {
+        try {
+            YAML::Node config = YAML::LoadFile(path);
+            min_inliers = config["sticky"]["min_inliers"].as<int>();
+            ransac_thresh_px = config["sticky"]["ransac_thresh_px"].as<double>();
+            min_tracked_features = config["sticky"]["min_tracked_features"].as<int>();
+            min_keyframe_parallax_deg = config["sticky"]["min_keyframe_parallax_deg"].as<double>();
+            max_frames_between_keyframes = config["sticky"]["max_frames_between_keyframes"].as<int>();
+            map_max_keyframes = config["sticky"]["map_max_keyframes"].as<int>();
+            tri_min_parallax_deg = config["sticky"]["tri_min_parallax_deg"].as<double>();
+            ba_max_motion_thresh = config["sticky"]["ba_max_motion_threshold"].as<double>();
+            ba_max_cost_increase = config["sticky"]["ba_max_cost_increase"].as<double>();
+            pnp_max_motion_thresh = config["sticky"]["pnp_max_motion_thresh"].as<double>();
+            pose_history_max = config["sticky"]["pose_history_max"].as<int>();
+
+        } catch (const YAML::Exception& e) {
+            throw std::runtime_error("Error loading YAML File at : " + path + " : " + std::string(e.what()));
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Error parsing YAML configuration at: " + path + " : " + std::string(e.what()));
+        }
+    }
+
+    static Params Load(const std::string& path)
+    {
+        Params p(path);
+        return p;
+    }
+
   };
 
   explicit StickyVoCore(const Params& p = Params());

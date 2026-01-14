@@ -94,6 +94,23 @@ Rectifier Rectifier::Load(std::string path)
     return rect;
 }
 
+std::vector<Eigen::Vector2d> Rectifier::undistortPixelPoints(const std::vector<Eigen::Vector2d>& px)
+{
+    std::vector<Eigen::Vector2d> out_px;
+    out_px.reserve(px.size());
+
+    std::vector<cv::Point2f> src;
+    src.reserve(src.size());
+    for (const Eigen::Vector2d& p : px) src.emplace_back((float)p.x(), (float)p.y());
+
+    std::vector<cv::Point2f> dst;
+    cv::undistortPoints(src, dst, intrinsics_, distortion_, cv::noArray(), intrinsics_);
+    
+    for (const cv::Point2f& p : dst) out_px.emplace_back((double)p.x, (double)p.y);
+
+    return out_px;
+}
+
 void Rectifier::rectifyMonoImage(const cv::Mat& input, cv::Mat& output) const
 {
     static cv::Mat map1, map2;

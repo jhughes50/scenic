@@ -11,6 +11,7 @@
 #include <string>
 #include <cassert>
 #include <functional>
+#include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <glider/core/odometry.hpp>
 
@@ -147,10 +148,19 @@ struct BaseInput
     }
 };
 
-struct TrackingInput : public BaseInput
+struct TrackingInput
 {
+    int pid;
+    cv::Mat curr_image;
+    double curr_stamp;
     cv::Mat prev_image;
-    Glider::Odometry prev_odom;
+    double prev_stamp;
+};
+
+struct TrackingOutput : public TrackingInput
+{
+    Eigen::Vector3d pose;
+    Eigen::Quaterniond orientation; 
 };
 
 struct SegmentationInput : public BaseInput
