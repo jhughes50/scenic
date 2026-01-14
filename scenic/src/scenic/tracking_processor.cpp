@@ -49,7 +49,8 @@ void TrackingProcessor::processBuffer()
         std::unique_lock<std::mutex> lock(mutex_);
         if (size(Access::PRELOCK) >= min_elem_) {
             std::unique_ptr<TrackingInput> raw_input = pop(Access::PRELOCK);
-            
+            std::shared_ptr<TrackingOutput> output;
+
             cv::Mat prev_image = raw_input->prev_image;
             cv::Mat curr_image = raw_input->curr_image;
             stickyvo_lgs::ImageView v0{(uint8_t*)prev_image.data, prev_image.cols, prev_image.rows, (int)prev_image.step, stickyvo_lgs::ImageView::Format::kGray8};
@@ -134,8 +135,11 @@ void TrackingProcessor::processBuffer()
                 bootstrap_fail_count_ = 0;
                 tracking_fail_count_ = 0;
                 const stickyvo::VoState vo_state = sticky_core_->state();
+                // make state outpot as shared ptr
+                
             }
-
+            if (output) outputCallback(output);
+        
         } else {
             lock.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
