@@ -148,21 +148,6 @@ struct BaseInput
     }
 };
 
-struct TrackingInput
-{
-    int pid;
-    cv::Mat curr_image;
-    double curr_stamp;
-    cv::Mat prev_image;
-    double prev_stamp;
-};
-
-struct TrackingOutput : public TrackingInput
-{
-    Eigen::Vector3d pose;
-    Eigen::Quaterniond orientation; 
-};
-
 struct SegmentationInput : public BaseInput
 {
     TextMap texts;

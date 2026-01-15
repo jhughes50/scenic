@@ -56,8 +56,11 @@ class Scenic
 
         bool initialized_{false};
         bool new_graph_{false};
+        bool tracking_initialized_{false};
+        int tracking_counter_{0};
+        ImageStamped prev_image_stamped_;
 
         FixedHashMap<int, cv::Mat> pid_img_map_;
-        FixedHashMap<int, bool> pid_status_map_;
+        std::unordered_map<int, bool> pid_status_map_;
 };
 } // namespace Scenic

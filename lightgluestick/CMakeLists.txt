@@ -5,7 +5,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 find_package(pybind11 REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS Development)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 include_directories(
     include

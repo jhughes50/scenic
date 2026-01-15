@@ -88,7 +88,25 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 
 void Scenic::addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img)
 {
-    
+    cv::Mat gray;
+    cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+    if (tracking_counter_ == 0) {
+        prev_image_stamped_.image = gray;
+        prev_image_stamped_.stampd = vo_ts;
+        prev_image_stamped_.stampi = gt_ts;
+    } else {
+        int pid = tracking_processor_->generateProcessID();
+        ImageStamped curr_image_stamped{gray, vo_ts, gt_ts};
+        TrackingInput input{pid, prev_image_stamped_, curr_image_stamped};
+        tracking_processor_->push(input);
+        pid_status_map_[pid] = false;
+        
+        prev_image_stamped_ = curr_image_stamped;
+        if (tracking_initialized_) {
+            //TODO set segmentationInput and push to seg processor 
+        }
+    }
+    tracking_counter_++;
 }
 
 void Scenic::graphCallback(std::shared_ptr<Graph> go)
@@ -106,7 +124,10 @@ void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 
 void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
 {
-    LOG(INFO) << "[SCENIC] Got Tracking Output";
+    if (to) {
+        LOG_FIRST_N(INFO, 1) << "[SCENIC] Tacking Initialized";
+        tracking_initialized_ = true;
+    }
 }
 
 bool Scenic::isInitialized() const

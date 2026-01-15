@@ -51,8 +51,8 @@ void TrackingProcessor::processBuffer()
             std::unique_ptr<TrackingInput> raw_input = pop(Access::PRELOCK);
             std::shared_ptr<TrackingOutput> output;
 
-            cv::Mat prev_image = raw_input->prev_image;
-            cv::Mat curr_image = raw_input->curr_image;
+            cv::Mat prev_image = raw_input->previous.image;
+            cv::Mat curr_image = raw_input->current.image;
             stickyvo_lgs::ImageView v0{(uint8_t*)prev_image.data, prev_image.cols, prev_image.rows, (int)prev_image.step, stickyvo_lgs::ImageView::Format::kGray8};
             stickyvo_lgs::ImageView v1{(uint8_t*)curr_image.data, curr_image.cols, curr_image.rows, (int)curr_image.step, stickyvo_lgs::ImageView::Format::kGray8};
 
@@ -105,8 +105,8 @@ void TrackingProcessor::processBuffer()
 
             stickyvo::CameraIntrinsics K_vo = K_vo_;
             K_vo.has_distortion = false;
-            const bool ok = sticky_core_->process_and_update(raw_input->prev_stamp, 
-                                                             raw_input->curr_stamp, 
+            const bool ok = sticky_core_->process_and_update(raw_input->previous.stampd, 
+                                                             raw_input->current.stampd, 
                                                              K_vo, 
                                                              pm,
                                                              stickyvo::Quat(qw_, qx_, qy_, qz_));
@@ -136,9 +136,14 @@ void TrackingProcessor::processBuffer()
                 tracking_fail_count_ = 0;
                 const stickyvo::VoState vo_state = sticky_core_->state();
                 // make state outpot as shared ptr
-                
+                output = std::make_shared<TrackingOutput>(raw_input->pid,
+                                                          raw_input->stampi,
+                                                          raw_input->stampd,
+                                                          vo_state.pose.p_wc,
+                                                          vo_state.pose.q_wc,
+                                                          vo_state.features)
             }
-            if (output) outputCallback(output);
+            outputCallback(output);
         
         } else {
             lock.unlock();
