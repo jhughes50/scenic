@@ -26,6 +26,11 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
         this->graphCallback(go);
     });
 
+    tracking_processor_ = std::make_unique<TrackingProcessor>(capacity, params_path+"blackfly-5mm.yaml", params_path+"sticky-params.yaml");
+    tracking_processor_->setCallback([this](std::shared_ptr<TrackingOutput> to) {
+        this->trackingCallback(to);
+    });
+
     FLAGS_minloglevel = 0;
     FLAGS_logtostderr = 1;
 }
@@ -38,6 +43,7 @@ Scenic::~Scenic()
 void Scenic::start()
 {
     LOG(INFO) << "[SCENIC] Starting Scenic";
+    tracking_processor_->start();
     seg_processor_->start();
     graph_processor_->start();
 }
@@ -45,6 +51,7 @@ void Scenic::start()
 void Scenic::stop()
 {
     LOG(INFO) << "[SCENIC] Stopping Scenic";
+    tracking_processor_->stop();
     seg_processor_->stop();
     graph_processor_->stop();
 }   
@@ -79,6 +86,11 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
     }
 }
 
+void Scenic::addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img)
+{
+    
+}
+
 void Scenic::graphCallback(std::shared_ptr<Graph> go)
 {
     LOG(INFO) << "[SCENIC] Finished PID: " << go->getProcessID();
@@ -90,6 +102,11 @@ void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
     LOG(INFO) << "[SCENIC] Got Segmentation Output with PID " << so->pid;
     graph_processor_->push(*so);
+}
+
+void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
+{
+    LOG(INFO) << "[SCENIC] Got Tracking Output";
 }
 
 bool Scenic::isInitialized() const
