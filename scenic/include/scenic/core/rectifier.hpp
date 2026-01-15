@@ -40,7 +40,9 @@ class Rectifier
 
         void rectifyMonoImage(const cv::Mat& input, cv::Mat& output) const;
         void calculateOutputIntrinsics();
-        
+
+        std::vector<Eigen::Vector2d> undistortPixelPoints(const std::vector<Eigen::Vector2d>& in_px);
+
         template<typename T>
         T getWidth() const;
         template<typename T>

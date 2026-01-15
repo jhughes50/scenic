@@ -17,8 +17,9 @@ find_package(Eigen3 REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(GTSAM_UNSTABLE REQUIRED)
 find_package(Ceres REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS Development)
+
 # my packages
 find_package(Clipper REQUIRED)
 find_package(lgs REQUIRED)
@@ -76,6 +77,7 @@ add_library(${PROJECT_NAME} SHARED
     src/scenic/params.cpp
     src/scenic/segmentation_processor.cpp
     src/scenic/graphing_processor.cpp
+    src/scenic/tracking_processor.cpp
     src/scenic/scenic.cpp
     src/scenic/node.cpp
     src/scenic/graph.cpp
