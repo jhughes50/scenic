@@ -11,7 +11,7 @@ using namespace Scenic;
 
 TrackingProcessor::TrackingProcessor(size_t capacity, const std::string& rect_path, const std::string& params_path) : ThreadedProcessor<TrackingInput>(capacity)
 {
-    rectifier_ = Rectifier::Load(rect_path);
+    rectifier_ = Rectifier::Load(rect_path, 4);
     stickyvo::StickyVoCore::Params cop = stickyvo::StickyVoCore::Params::Load(params_path);
     sticky_core_ = std::make_unique<stickyvo::StickyVoCore>(cop);
 
@@ -28,13 +28,13 @@ TrackingProcessor::TrackingProcessor(size_t capacity, const std::string& rect_pa
 
     try {
         stickyvo_lgs::LgsConfig cfg;
-        cfg.python_module = "lgs_py_bridge";
+        cfg.python_module = "stickyvo_lgs.lgs_py_bridge";
         cfg.python_func = "infer_pair";
         cfg.use_gpu = true;
 
         lgs_ = std::make_unique<stickyvo_lgs::LgsFrontend>(cfg);
     } catch (const std::exception& e) {
-        LOG(FATAL) << "[SCENIC] LGS Construction Failed: %s", e.what();
+        LOG(FATAL) << "[SCENIC] LGS Construction Failed: " << e.what();
     }
 }
 
@@ -55,9 +55,7 @@ void TrackingProcessor::processBuffer()
             cv::Mat curr_image = raw_input->current.image;
             stickyvo_lgs::ImageView v0{(uint8_t*)prev_image.data, prev_image.cols, prev_image.rows, (int)prev_image.step, stickyvo_lgs::ImageView::Format::kGray8};
             stickyvo_lgs::ImageView v1{(uint8_t*)curr_image.data, curr_image.cols, curr_image.rows, (int)curr_image.step, stickyvo_lgs::ImageView::Format::kGray8};
-
             auto matches = lgs_->infer_pair(v0, v1, K_);
-
             stickyvo::PairMatchesLite pm;
             pm.score = matches.score;
             std::vector<Eigen::Vector2d> p0_px, p1_px;
@@ -137,11 +135,11 @@ void TrackingProcessor::processBuffer()
                 const stickyvo::VoState vo_state = sticky_core_->state();
                 // make state outpot as shared ptr
                 output = std::make_shared<TrackingOutput>(raw_input->pid,
-                                                          raw_input->stampi,
-                                                          raw_input->stampd,
+                                                          raw_input->current.stampi,
+                                                          raw_input->current.stampd,
                                                           vo_state.pose.p_wc,
                                                           vo_state.pose.q_wc,
-                                                          vo_state.features)
+                                                          vo_state.features);
             }
             outputCallback(output);
         

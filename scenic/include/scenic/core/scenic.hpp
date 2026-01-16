@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include <glider/core/odometry.hpp>
 #include <glider/core/glider.hpp>
 
@@ -34,6 +36,7 @@ class Scenic
         void push(const cv::Mat& img, const Glider::Odometry& odom); // dep
 
         void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img);
+        void addVoImage(double vo_ts, int64_t gt_ts, const cv::Mat& img);
         void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d gyro, Eigen::Vector4d quat);
         void addGPS(int64_t timestamp, Eigen::Vector3d& gps);
 
@@ -62,5 +65,9 @@ class Scenic
 
         FixedHashMap<int, cv::Mat> pid_img_map_;
         std::unordered_map<int, bool> pid_status_map_;
+        FixedHashMap<int, std::shared_ptr<TrackingOutput>> pid_to_map_;
+        FixedHashMap<int, std::shared_ptr<GraphingInput>> pid_gi_map_;
+
+        mutable std::mutex img_proc_mutex_;
 };
 } // namespace Scenic

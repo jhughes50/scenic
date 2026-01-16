@@ -132,4 +132,4 @@ def get_class(mod_name, base_path, BaseClass):
 
 def get_model(name):
     from .base_model import BaseModel
-    return get_class(name, 'lightgluestick', BaseModel)
+    return get_class(name, __package__, BaseModel)

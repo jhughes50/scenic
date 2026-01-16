@@ -26,44 +26,54 @@ struct LgsFrontend::Impl {
     static int c = 0;
     return c;
   }
-  
-  // Managed release: Ensures the GIL acquired by py::initialize_interpreter()
-  // is eventually released after initial imports are complete.
-  static std::unique_ptr<py::gil_scoped_release>& gil_release() {
-    static std::unique_ptr<py::gil_scoped_release> release;
-    return release;
-  }
 
   explicit Impl(const LgsConfig& c) : cfg(c) {
     std::lock_guard<std::mutex> lk(interp_mutex());
-    if (interp_refcount() == 0) py::initialize_interpreter();
+    
+    bool first_init = (interp_refcount() == 0);
+    
+    if (first_init) {
+      py::initialize_interpreter();
+    }
+    
     interp_refcount()++;
-
+    
+    // Ensure this thread has GIL state (critical for non-main threads!)
+    //PyGILState_STATE gstate = PyGILState_Ensure();
+    
     try {
       py::module mod = py::module::import(cfg.python_module.c_str());
       fn = mod.attr(cfg.python_func.c_str());
-      
-      if (!gil_release()) {
-        gil_release() = std::make_unique<py::gil_scoped_release>();
-      }
     } catch (const std::exception& e) {
+      //PyGILState_Release(gstate);
       throw std::runtime_error(std::string("LGS Python import failed: ") + e.what());
     }
+    if (first_init) {
+      PyEval_SaveThread();
+    } 
+    // Release the GIL state for this thread
+    //PyGILState_Release(gstate);
   }
 
   ~Impl() {
-    {
-      py::gil_scoped_acquire gil;
-      try {
-        py::module mod = py::module::import(cfg.python_module.c_str());
-        if (py::hasattr(mod, "shutdown_lgs")) mod.attr("shutdown_lgs")();
-      } catch (...) {}
-      fn = py::none();
-    }
     std::lock_guard<std::mutex> lk(interp_mutex());
+    
+    // Ensure we have the GIL before cleanup
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    
+    try {
+      py::module mod = py::module::import(cfg.python_module.c_str());
+      if (py::hasattr(mod, "shutdown_lgs")) {
+        mod.attr("shutdown_lgs")();
+      }
+    } catch (...) {}
+    
+    fn = py::none();
+    
+    PyGILState_Release(gstate);
+    
     interp_refcount()--;
     if (interp_refcount() == 0) {
-      gil_release().reset(); 
       py::finalize_interpreter();
     }
   }
@@ -137,42 +147,52 @@ LgsFrontend::LgsFrontend(const LgsConfig& cfg) : impl_(std::make_unique<Impl>(cf
 LgsFrontend::~LgsFrontend() = default;
 
 PairMatches LgsFrontend::infer_pair(const ImageView& img0, const ImageView& img1, const CameraIntrinsics& K) const {
-  py::gil_scoped_acquire gil;
-  py::array np0 = imageview_to_numpy(img0), np1 = imageview_to_numpy(img1);
-  py::dict Kd; Kd["fx"] = K.fx; Kd["fy"] = K.fy; Kd["cx"] = K.cx; Kd["cy"] = K.cy;
-  py::dict cfgd; cfgd["model_dir"] = impl_->cfg.model_dir; cfgd["max_keypoints"] = impl_->cfg.max_keypoints; cfgd["use_gpu"] = impl_->cfg.use_gpu;
-
-  py::object ret = impl_->fn(np0, np1, Kd, cfgd);
-  py::dict d = ret.cast<py::dict>();
+  PyGILState_STATE gstate = PyGILState_Ensure();
+  
   PairMatches out;
-
-  if (!d.contains("kpts0") || !d.contains("kpts1")) throw std::runtime_error("Missing kpts0/kpts1");
-  out.f0.keypoints = parse_kpts(d["kpts0"]); out.f1.keypoints = parse_kpts(d["kpts1"]);
-
-  py::handle pm = dict_get_any(d, {"pt_matches", "matches_points"});
-  if (!pm) throw std::runtime_error("Missing point matches");
-  out.point_matches = parse_matches(pm);
-
-  py::handle lm = dict_get_any(d, {"line_matches", "matches_lines"});
-  if (d.contains("lines0") && d.contains("lines1") && lm) {
-    out.f0.lines = parse_lines(d["lines0"]);
-    out.f1.lines = parse_lines(d["lines1"]);
-    out.line_matches = parse_matches(lm);
+  try {
+    py::array np0 = imageview_to_numpy(img0), np1 = imageview_to_numpy(img1);
+    py::dict Kd; Kd["fx"] = K.fx; Kd["fy"] = K.fy; Kd["cx"] = K.cx; Kd["cy"] = K.cy;
+    py::dict cfgd; cfgd["model_dir"] = impl_->cfg.model_dir; cfgd["max_keypoints"] = impl_->cfg.max_keypoints; cfgd["use_gpu"] = impl_->cfg.use_gpu;
+    
+    py::object ret = impl_->fn(np0, np1, Kd, cfgd);
+    py::dict d = ret.cast<py::dict>();
+    
+    if (!d.contains("kpts0") || !d.contains("kpts1")) throw std::runtime_error("Missing kpts0/kpts1");
+    out.f0.keypoints = parse_kpts(d["kpts0"]); 
+    out.f1.keypoints = parse_kpts(d["kpts1"]);
+    
+    py::handle pm = dict_get_any(d, {"pt_matches", "matches_points"});
+    if (!pm) throw std::runtime_error("Missing point matches");
+    out.point_matches = parse_matches(pm);
+    
+    py::handle lm = dict_get_any(d, {"line_matches", "matches_lines"});
+    if (d.contains("lines0") && d.contains("lines1") && lm) {
+      out.f0.lines = parse_lines(d["lines0"]);
+      out.f1.lines = parse_lines(d["lines1"]);
+      out.line_matches = parse_matches(lm);
+    }
+    
+    if (d.contains("num_inliers_points")) out.num_inliers_points = d["num_inliers_points"].cast<int>();
+    if (d.contains("num_inliers_lines"))  out.num_inliers_lines  = d["num_inliers_lines"].cast<int>();
+    if (d.contains("score"))              out.score              = d["score"].cast<double>();
+    
+  } catch (...) {
+    PyGILState_Release(gstate);
+    throw;
   }
-
-  if (d.contains("num_inliers_points")) out.num_inliers_points = d["num_inliers_points"].cast<int>();
-  if (d.contains("num_inliers_lines"))  out.num_inliers_lines  = d["num_inliers_lines"].cast<int>();
-  if (d.contains("score"))              out.score              = d["score"].cast<double>();
-
+  
+  PyGILState_Release(gstate);
   return out;
 }
 
 void LgsFrontend::reset_state() {
+  PyGILState_STATE gstate = PyGILState_Ensure();
   try {
-    py::gil_scoped_acquire gil;
     py::module mod = py::module::import(impl_->cfg.python_module.c_str());
     if (py::hasattr(mod, "reset_lgs_sequence")) mod.attr("reset_lgs_sequence")();
   } catch (...) {}
+  PyGILState_Release(gstate);
 }
 
 } // namespace stickyvo_lgs

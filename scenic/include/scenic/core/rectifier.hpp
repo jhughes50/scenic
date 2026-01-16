@@ -22,9 +22,9 @@ class Rectifier
 {
     public:
         Rectifier() = default;
-        Rectifier(std::string path);
+        Rectifier(std::string path, int scale = 1);
 
-        static Rectifier Load(std::string path);
+        static Rectifier Load(std::string path, int scale = 1);
 
         void setIntrinsics(const cv::Mat& i);
         void setDistortion(const cv::Mat& d);

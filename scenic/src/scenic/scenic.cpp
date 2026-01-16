@@ -15,6 +15,9 @@ namespace Scenic
 Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string& config_path)
 {
     pid_img_map_.setCapacity(capacity);
+    pid_to_map_.setCapacity(capacity);
+    pid_gi_map_.setCapacity(capacity);
+
     std::string params_path = "/usr/local/share/scenic/config/";
     seg_processor_ = std::make_unique<SegmentationProcessor>(capacity, params_path, model_path, config_path);
     seg_processor_->setCallback([this](std::shared_ptr<GraphingInput> so) { 
@@ -88,6 +91,34 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
 
 void Scenic::addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img)
 {
+    //cv::Mat gray;
+    //cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+    //if (tracking_counter_ == 0) {
+    //    prev_image_stamped_.image = gray;
+    //    prev_image_stamped_.stampd = vo_ts;
+    //    prev_image_stamped_.stampi = gt_ts;
+    //} else {
+    //    int pid = tracking_processor_->generateProcessID();
+    //    ImageStamped curr_image_stamped{gray, vo_ts, gt_ts};
+    //    TrackingInput input{pid, prev_image_stamped_, curr_image_stamped};
+    //    std::unique_lock<std::mutex> lock(img_proc_mutex_);
+    //    pid_status_map_[pid] = false;
+    //    lock.unlock();
+    //    tracking_processor_->push(input);
+
+    //    prev_image_stamped_ = curr_image_stamped;
+    //    if (tracking_initialized_ && texts_.text.size() > 0) {
+    //        //TODO set segmentationInput and push to seg GraphingProcessor
+    //        SegmentationInput seg_input(pid, img, texts_);
+    //        seg_processor_->push(seg_input);
+    //    }
+    //}
+    //LOG(INFO) << "[SCENIC] Adding image: " << tracking_counter_;
+    //tracking_counter_++;
+}
+
+void Scenic::addVoImage(double vo_ts, int64_t gt_ts, const cv::Mat& img)
+{ 
     cv::Mat gray;
     cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
     if (tracking_counter_ == 0) {
@@ -96,15 +127,15 @@ void Scenic::addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img)
         prev_image_stamped_.stampi = gt_ts;
     } else {
         int pid = tracking_processor_->generateProcessID();
+
         ImageStamped curr_image_stamped{gray, vo_ts, gt_ts};
         TrackingInput input{pid, prev_image_stamped_, curr_image_stamped};
-        tracking_processor_->push(input);
+        std::unique_lock<std::mutex> lock(img_proc_mutex_);
         pid_status_map_[pid] = false;
-        
+        lock.unlock();
+        tracking_processor_->push(input);
+
         prev_image_stamped_ = curr_image_stamped;
-        if (tracking_initialized_) {
-            //TODO set segmentationInput and push to seg processor 
-        }
     }
     tracking_counter_++;
 }
@@ -119,7 +150,17 @@ void Scenic::graphCallback(std::shared_ptr<Graph> go)
 void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
 {
     LOG(INFO) << "[SCENIC] Got Segmentation Output with PID " << so->pid;
-    graph_processor_->push(*so);
+    std::lock_guard<std::mutex> lock(img_proc_mutex_);
+    if (pid_status_map_[so->pid]) {
+        // get the tracking output for this pid and
+        // pass to the graph constructor.
+        std::shared_ptr<TrackingOutput> to = pid_to_map_.get(so->pid);
+        LOG(INFO) << "[SCENIC] Got TrackingOutput first for " << so->pid;
+    } else {
+        pid_status_map_[so->pid] = true;
+        pid_gi_map_.insert(so->pid, so);
+    }
+    //graph_processor_->push(*so);
 }
 
 void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
@@ -127,6 +168,19 @@ void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
     if (to) {
         LOG_FIRST_N(INFO, 1) << "[SCENIC] Tacking Initialized";
         tracking_initialized_ = true;
+        // TODO give this to glider
+        std::lock_guard<std::mutex> lock(img_proc_mutex_);
+        if (pid_status_map_[to->pid]) {
+            // get the seg output for this pid and
+            // pass to the graph constrcutor
+            std::shared_ptr<GraphingInput> gi = pid_gi_map_.get(to->pid);
+            LOG(INFO) << "[SCENIC] Got SegmentationOutput first for " << to->pid;
+        } else {
+            pid_status_map_[to->pid] = true;
+            pid_to_map_.insert(to->pid, to);
+        }
+    } else {
+        LOG(INFO) << "[SCENIC] Waiting for Tracking to initialize";
     }
 }
 

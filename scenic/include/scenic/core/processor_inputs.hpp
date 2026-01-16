@@ -160,6 +160,13 @@ struct SegmentationInput : public BaseInput
         odom = odm;
         texts = text;
     }
+
+    SegmentationInput(int id, const cv::Mat& img, const TextMap& text)
+    {
+        pid = id;
+        image = img;
+        texts = text;
+    }
 };
 
 struct GraphingInput : public BaseInput

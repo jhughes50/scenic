@@ -8,7 +8,7 @@
 
 using namespace Scenic;
 
-Rectifier::Rectifier(std::string path)
+Rectifier::Rectifier(std::string path, int scale)
 {
     try
     {
@@ -48,7 +48,7 @@ Rectifier::Rectifier(std::string path)
     }
 }
 
-Rectifier Rectifier::Load(std::string path)
+Rectifier Rectifier::Load(std::string path, int scale)
 {
     Rectifier rect;
     try
@@ -57,8 +57,8 @@ Rectifier Rectifier::Load(std::string path)
 
         auto cam = config["cam0"];
         auto intrinsics = cam["intrinsics"];
-        cv::Mat intrin = (cv::Mat_<double>(3,3) << intrinsics[0].as<double>(), 0, intrinsics[2].as<double>(),
-                                                0, intrinsics[1].as<double>(), intrinsics[3].as<double>(),
+        cv::Mat intrin = (cv::Mat_<double>(3,3) << intrinsics[0].as<double>()/scale, 0, intrinsics[2].as<double>()/scale,
+                                                0, intrinsics[1].as<double>()/scale, intrinsics[3].as<double>()/scale,
                                                 0, 0, 1);
         rect.setIntrinsics(intrin);
 
@@ -71,8 +71,8 @@ Rectifier Rectifier::Load(std::string path)
         
         rect.setDistortion(dist);
 
-        int width = cam["resolution"][0].as<int>();
-        int height = cam["resolution"][1].as<int>();
+        int width = cam["resolution"][0].as<int>()/scale;
+        int height = cam["resolution"][1].as<int>()/scale;
         //auto t_body_cam = cam["T_body_cam"];
         //Eigen::Vector3d t(t_body_cam[0].as<double>(), t_body_cam[1].as<double>(), t_body_cam[2].as<double>());
 

@@ -79,9 +79,11 @@ RUN sudo apt update \
   && sudo apt install -y ros-jazzy-desktop-full
 
 RUN sudo apt install -y ros-jazzy-gtsam
+RUN sudo apt install -y python3-pybind11 libceres-dev
 USER $USER
 
 RUN mkdir -p ws/src
+RUN python3 -m venv lgs 
 
 ENV CUDA_HOME=/usr/local/cuda
 RUN sudo chown $USER:$USER .bashrc \
