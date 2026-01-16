@@ -44,6 +44,8 @@ class Glider
          *  @param quat: the orientation measurement in the imu's frame */
         void addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
 
+        void addOdometry(int64_t timestamp, const Eigen::Vector3d& pos, const Eigen::Quaterniond& rot);
+
         /*! @brief calls the factor manager to interpolate between GPS 
          *  measurements using the pim
          *  @param timestamp: time at which you want to interpolate 
@@ -62,7 +64,7 @@ class Glider
          *  @params: the laoded params from the yaml file */
         void initializeLogging(const Parameters& params) const;
         /*! @brief rotate a quaternion by a rotation matrix
-         *  @params rot: the rotation matrix you want to rotate the quaterniuon by
+         *  @params rot: the rotation matrix you want to rotate the quaternion by
          *  @param quat: the orientation we want to rotate
          *  @return the rotated orientation as quaternion as a Vector4d in
          *  (w, x, y, z) format */
@@ -88,5 +90,7 @@ class Glider
         // @brief save the state estimate from 
         // the optimizer
         OdometryWithCovariance current_odom_;
+
+        Eigen::Isometry3d prev_pose_;
 };
 }
