@@ -93,7 +93,7 @@ class FactorManager
          *  @param orient: orientation in quaternion (w,x,y,z) format */
         void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
 
-        void addOdometryFactor(int64_t timestamp, const Eigen::Isometry3d& pose);
+        void addOdometryFactor(int64_t timestamp, const Eigen::Isometry3d& pose, const Eigen::Quaterniond& orient);
 
         // getters and checkers
         /*! @brief gets the complete factor graph */
@@ -217,6 +217,7 @@ class FactorManager
         bool compose_odom_{false};
         gtsam::Pose3 last_odom_;
         gtsam::Pose3 last_scaled_odom_;
+        gtsam::Rot3 odom_orient_;
         gtsam::noiseModel::Base::shared_ptr odom_noise_;
 };
 }

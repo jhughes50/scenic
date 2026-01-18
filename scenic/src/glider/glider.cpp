@@ -132,7 +132,7 @@ void Glider::addOdometry(int64_t timestamp, const Eigen::Vector3d& pos, const Ei
 
     Eigen::Isometry3d rel_pose = prev_pose_.inverse() * pose;
 
-    factor_manager_.addOdometryFactor(timestamp, rel_pose);
+    factor_manager_.addOdometryFactor(timestamp, rel_pose, rot);
 
     prev_pose_ = pose;
 }

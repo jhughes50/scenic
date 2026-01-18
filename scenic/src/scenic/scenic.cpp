@@ -19,6 +19,10 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
     pid_gi_map_.setCapacity(capacity);
 
     std::string params_path = "/usr/local/share/scenic/config/";
+    current_state_ = Glider::OdometryWithCovariance::Uninitialized();
+
+    glider_ = std::make_unique<Glider::Glider>(params_path+"glider-params.yaml");
+
     seg_processor_ = std::make_unique<SegmentationProcessor>(capacity, params_path, model_path, config_path);
     seg_processor_->setCallback([this](std::shared_ptr<GraphingInput> so) { 
         this->segmentationCallback(so); 
@@ -89,55 +93,44 @@ void Scenic::push(const cv::Mat& img, const Glider::Odometry& odom)
     }
 }
 
-void Scenic::addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img)
-{
-    //cv::Mat gray;
-    //cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
-    //if (tracking_counter_ == 0) {
-    //    prev_image_stamped_.image = gray;
-    //    prev_image_stamped_.stampd = vo_ts;
-    //    prev_image_stamped_.stampi = gt_ts;
-    //} else {
-    //    int pid = tracking_processor_->generateProcessID();
-    //    ImageStamped curr_image_stamped{gray, vo_ts, gt_ts};
-    //    TrackingInput input{pid, prev_image_stamped_, curr_image_stamped};
-    //    std::unique_lock<std::mutex> lock(img_proc_mutex_);
-    //    pid_status_map_[pid] = false;
-    //    lock.unlock();
-    //    tracking_processor_->push(input);
-
-    //    prev_image_stamped_ = curr_image_stamped;
-    //    if (tracking_initialized_ && texts_.text.size() > 0) {
-    //        //TODO set segmentationInput and push to seg GraphingProcessor
-    //        SegmentationInput seg_input(pid, img, texts_);
-    //        seg_processor_->push(seg_input);
-    //    }
-    //}
-    //LOG(INFO) << "[SCENIC] Adding image: " << tracking_counter_;
-    //tracking_counter_++;
-}
-
-void Scenic::addVoImage(double vo_ts, int64_t gt_ts, const cv::Mat& img)
+void Scenic::addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img, bool segment)
 { 
     cv::Mat gray;
     cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+    int pid = tracking_processor_->generateProcessID();
     if (tracking_counter_ == 0) {
         prev_image_stamped_.image = gray;
         prev_image_stamped_.stampd = vo_ts;
         prev_image_stamped_.stampi = gt_ts;
     } else {
-        int pid = tracking_processor_->generateProcessID();
-
         ImageStamped curr_image_stamped{gray, vo_ts, gt_ts};
         TrackingInput input{pid, prev_image_stamped_, curr_image_stamped};
-        std::unique_lock<std::mutex> lock(img_proc_mutex_);
-        pid_status_map_[pid] = false;
-        lock.unlock();
+        if (segment && tracking_initialized_) {
+            std::unique_lock<std::mutex> lock(img_proc_mutex_);
+            pid_status_map_[pid] = false;
+            lock.unlock();
+        }
         tracking_processor_->push(input);
-
         prev_image_stamped_ = curr_image_stamped;
     }
     tracking_counter_++;
+
+    if (segment && tracking_initialized_) {
+        SegmentationInput seg_input(pid, img, texts_);
+        seg_processor_->push(seg_input);
+    }
+}
+
+void Scenic::addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat)
+{
+    glider_->addImu(timestamp, accel, gyro, quat);
+}
+
+Glider::OdometryWithCovariance Scenic::addGPS(int64_t timestamp, Eigen::Vector3d& gps)
+{
+    glider_->addGps(timestamp, gps);
+    current_state_ = glider_->optimize(timestamp);
+    return current_state_;
 }
 
 void Scenic::graphCallback(std::shared_ptr<Graph> go)
@@ -168,16 +161,20 @@ void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
     if (to) {
         LOG_FIRST_N(INFO, 1) << "[SCENIC] Tacking Initialized";
         tracking_initialized_ = true;
-        // TODO give this to glider
+        glider_->addOdometry(to->stampi, to->position, to->orientation);
+        
         std::lock_guard<std::mutex> lock(img_proc_mutex_);
-        if (pid_status_map_[to->pid]) {
-            // get the seg output for this pid and
-            // pass to the graph constrcutor
-            std::shared_ptr<GraphingInput> gi = pid_gi_map_.get(to->pid);
-            LOG(INFO) << "[SCENIC] Got SegmentationOutput first for " << to->pid;
-        } else {
-            pid_status_map_[to->pid] = true;
-            pid_to_map_.insert(to->pid, to);
+        if (pid_status_map_.find(to->pid) != pid_status_map_.end()) {
+            // the pid is in the map we also segmented the image
+            if (pid_status_map_[to->pid]) {
+                // get the seg output for this pid and
+                // pass to the graph constrcutor
+                std::shared_ptr<GraphingInput> gi = pid_gi_map_.get(to->pid);
+                LOG(INFO) << "[SCENIC] Got SegmentationOutput first for " << to->pid;
+            } else {
+                pid_status_map_[to->pid] = true;
+                pid_to_map_.insert(to->pid, to);
+            }
         }
     } else {
         LOG(INFO) << "[SCENIC] Waiting for Tracking to initialize";

@@ -10,6 +10,7 @@
 #include <mutex>
 
 #include <glider/core/odometry.hpp>
+#include <glider/core/odometry_with_covariance.hpp>
 #include <glider/core/glider.hpp>
 
 #include "scenic/core/segmentation_processor.hpp"
@@ -35,10 +36,9 @@ class Scenic
 
         void push(const cv::Mat& img, const Glider::Odometry& odom); // dep
 
-        void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img);
-        void addVoImage(double vo_ts, int64_t gt_ts, const cv::Mat& img);
-        void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d gyro, Eigen::Vector4d quat);
-        void addGPS(int64_t timestamp, Eigen::Vector3d& gps);
+        void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img, bool segment);
+        void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
+        Glider::OdometryWithCovariance addGPS(int64_t timestamp, Eigen::Vector3d& gps);
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
         void trackingCallback(std::shared_ptr<TrackingOutput> to);
@@ -68,6 +68,8 @@ class Scenic
         FixedHashMap<int, std::shared_ptr<TrackingOutput>> pid_to_map_;
         FixedHashMap<int, std::shared_ptr<GraphingInput>> pid_gi_map_;
 
+        std::unique_ptr<Glider::Glider> glider_;
+        Glider::OdometryWithCovariance current_state_;
         mutable std::mutex img_proc_mutex_;
 };
 } // namespace Scenic

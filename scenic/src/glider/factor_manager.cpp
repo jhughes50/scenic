@@ -161,7 +161,7 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
 
     // add gps measurement to factor graph as gtsam object
     graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
-    graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, orient_noise_);
+    //graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, orient_noise_);
 
     if (imu_initialized_ && compose_odom_)
     {   
@@ -177,7 +177,8 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
 
         double scale = unscaled_dist / scaled_dist;
         gtsam::Pose3 scaled_pose(last_odom_.rotation(), last_odom_.translation()*scale);
-        graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(X(key_index_-1), X(key_index_), pose, odom_noise_);
+        graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(X(key_index_-1), X(key_index_), scaled_pose, odom_noise_));
+        graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), odom_orient_, orient_noise_);
     }
 
     // increment key index
@@ -275,7 +276,7 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
     last_imu_time_ = current_time;
 }
 
-void FactorManager::addOdometryFactor(int64_t timestamp, const Eigen::Isometry3d& epose)
+void FactorManager::addOdometryFactor(int64_t timestamp, const Eigen::Isometry3d& epose, const Eigen::Quaterniond& orient)
 {
     if (!imu_initialized_) return;
     
@@ -284,11 +285,12 @@ void FactorManager::addOdometryFactor(int64_t timestamp, const Eigen::Isometry3d
 
     gtsam::Rot3 gt_rot(rot);
     gtsam::Point3 gt_t(t);
+    odom_orient_ = gtsam::Rot3(orient.toRotationMatrix());
 
     gtsam::Pose3 pose(gt_rot, gt_t);
 
     gtsam::NavState result = pim_->predict(current_state_.getNavState(), bias_);
-
+    
     if (compose_odom_)
     {
         last_odom_ = last_odom_.compose(pose);
