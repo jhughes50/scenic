@@ -13,6 +13,10 @@ dgpsfm:
   enable: true
   integration_threshold: 1.0
   covariance: 0.03
+odom:
+  convariances:
+    orientation: 0.001
+    translation: 0.5
 constants:
   gravity: 9.81
   bias_num_measurements: 100

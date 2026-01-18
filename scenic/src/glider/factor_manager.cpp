@@ -34,6 +34,12 @@ FactorManager::FactorManager(const Parameters& params)
     gps_noise_ = gtsam::noiseModel::Isotropic::Sigma(3, params.gps_noise);
     orient_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(params.roll_pitch_cov, params.roll_pitch_cov, params.heading_cov));
     dgpsfm_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(M_PI/2, M_PI/2, params.dgpsfm_cov));
+    odom_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector6(params.odom_orientation_noise, 
+                                                                     params.odom_orientation_noise, 
+                                                                     params.odom_orientation_noise, 
+                                                                     params.odom_translation_noise, 
+                                                                     params.odom_translation_noise, 
+                                                                     params.odom_orientation_noise));
     
     // set key index
     key_index_ = 0;
@@ -169,7 +175,9 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
         double scaled_dist = scaled_trans.norm();
         double unscaled_dist = odom_trans.norm();
 
-
+        double scale = unscaled_dist / scaled_dist;
+        gtsam::Pose3 scaled_pose(last_odom_.rotation(), last_odom_.translation()*scale);
+        graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(X(key_index_-1), X(key_index_), pose, odom_noise_);
     }
 
     // increment key index

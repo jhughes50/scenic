@@ -217,5 +217,6 @@ class FactorManager
         bool compose_odom_{false};
         gtsam::Pose3 last_odom_;
         gtsam::Pose3 last_scaled_odom_;
+        gtsam::noiseModel::Base::shared_ptr odom_noise_;
 };
 }
