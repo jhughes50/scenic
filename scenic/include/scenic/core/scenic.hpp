@@ -7,7 +7,10 @@
 
 #pragma once
 
+#include <mutex>
+
 #include <glider/core/odometry.hpp>
+#include <glider/core/odometry_with_covariance.hpp>
 #include <glider/core/glider.hpp>
 
 #include "scenic/core/segmentation_processor.hpp"
@@ -33,9 +36,9 @@ class Scenic
 
         void push(const cv::Mat& img, const Glider::Odometry& odom); // dep
 
-        void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img);
-        void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d gyro, Eigen::Vector4d quat);
-        void addGPS(int64_t timestamp, Eigen::Vector3d& gps);
+        void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img, bool segment);
+        void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
+        Glider::OdometryWithCovariance addGPS(int64_t timestamp, Eigen::Vector3d& gps);
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
         void trackingCallback(std::shared_ptr<TrackingOutput> to);
@@ -45,6 +48,7 @@ class Scenic
         bool isNewGraph() const;
 
         cv::Mat getGraphImage() const;
+        Glider::Odometry getVisualOdometry() const;
 
     private:
         TextMap texts_;
@@ -56,8 +60,18 @@ class Scenic
 
         bool initialized_{false};
         bool new_graph_{false};
+        bool tracking_initialized_{false};
+        int tracking_counter_{0};
+        ImageStamped prev_image_stamped_;
 
         FixedHashMap<int, cv::Mat> pid_img_map_;
-        FixedHashMap<int, bool> pid_status_map_;
+        std::unordered_map<int, bool> pid_status_map_;
+        FixedHashMap<int, std::shared_ptr<TrackingOutput>> pid_to_map_;
+        FixedHashMap<int, std::shared_ptr<GraphingInput>> pid_gi_map_;
+
+        std::unique_ptr<Glider::Glider> glider_;
+        Glider::OdometryWithCovariance current_state_;
+        Glider::Odometry visual_odom_;
+        mutable std::mutex img_proc_mutex_;
 };
 } // namespace Scenic

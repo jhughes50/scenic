@@ -1,12 +1,13 @@
 sticky:
-  min_inliers: 20
-  ransac_thresh_px: 5.0
-  min_tracked_features: 150
-  min_keyframe_parallax_deg: 2.0
+  min_inliers: 15
+  ransac_thresh_px: 10.0
+  min_tracked_features: 60
+  min_keyframe_parallax_deg: 1.5
   max_frames_between_keyframes: 30
-  map_max_keyframes: 10 
-  tri_min_parallax_deg: 1.0
-  ba_max_motion_threshold: 5.0
+  map_max_keyframes: 20 
+  tri_min_parallax_deg: 1.5
+  tri_max_reproj_err_px: 10.0
+  ba_max_motion_threshold: 10.0
   ba_max_cost_increase: 2.0
   pnp_max_motion_thresh: 20.0
   pose_history_max: 5000

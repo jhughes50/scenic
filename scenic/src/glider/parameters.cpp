@@ -40,6 +40,9 @@ Glider::Parameters::Parameters(const std::string& path)
         dgpsfm_threshold = config["dgpsfm"]["integration_threshold"].as<double>();
         dgpsfm_cov = config["dgpsfm"]["covariance"].as<double>();
 
+        odom_orientation_noise = config["odom"]["covariances"]["orientation"].as<double>();
+        odom_translation_noise = config["odom"]["covariances"]["translation"].as<double>();
+
         t_imu_gps(0) = config["gps_to_imu"]["x"].as<double>();
         t_imu_gps(1) = config["gps_to_imu"]["y"].as<double>();
         t_imu_gps(2) = config["gps_to_imu"]["z"].as<double>();

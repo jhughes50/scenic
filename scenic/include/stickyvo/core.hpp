@@ -61,6 +61,7 @@ public:
             max_frames_between_keyframes = config["sticky"]["max_frames_between_keyframes"].as<int>();
             map_max_keyframes = config["sticky"]["map_max_keyframes"].as<int>();
             tri_min_parallax_deg = config["sticky"]["tri_min_parallax_deg"].as<double>();
+            tri_max_reproj_err_px = config["sticky"]["tri_max_reproj_err_px"].as<double>();
             ba_max_motion_thresh = config["sticky"]["ba_max_motion_threshold"].as<double>();
             ba_max_cost_increase = config["sticky"]["ba_max_cost_increase"].as<double>();
             pnp_max_motion_thresh = config["sticky"]["pnp_max_motion_thresh"].as<double>();

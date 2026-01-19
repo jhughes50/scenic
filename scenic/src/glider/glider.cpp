@@ -16,6 +16,8 @@ Glider::Glider(const std::string& path)
     initializeLogging(params);
     factor_manager_ = FactorManager(params);
     
+    prev_pose_ = Eigen::Isometry3d::Identity();
+
     frame_ = params.frame;
     t_imu_gps_ = params.t_imu_gps;
     r_enu_ned_ = Eigen::Matrix3d::Zero();
@@ -120,6 +122,26 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
         LOG(FATAL) << "[GLIDER] IMU Frame, not supported use ENU or NED";
     }
 }  
+
+void Glider::addOdometry(int64_t timestamp, const Eigen::Vector3d& pos, const Eigen::Quaterniond& rot)
+{
+    // should apply cam -> imu ext
+    Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
+    pose.linear() = rot.toRotationMatrix();
+    pose.translation() = pos;
+
+    Eigen::Matrix3d R_frd_cam;
+    R_frd_cam << 0,  -1,  0,
+                 1,  0,  0,
+                 0,  0, -1;
+    pose.rotate(R_frd_cam);
+
+    Eigen::Isometry3d rel_pose = prev_pose_.inverse() * pose;
+
+    factor_manager_.addOdometryFactor(timestamp, rel_pose, rot);
+
+    prev_pose_ = pose;
+}
 
 Odometry Glider::interpolate(int64_t timestamp)
 {

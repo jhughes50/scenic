@@ -1,8 +1,8 @@
 from typing import Dict
 import numpy as np
 import torch
-from lightgluestick.utils import batch_to_np, numpy_image_to_torch
-from lightgluestick.two_view_pipeline import TwoViewPipeline
+from .lightgluestick.utils import batch_to_np, numpy_image_to_torch
+from .lightgluestick.two_view_pipeline import TwoViewPipeline
 
 _LGS_PIPELINE = None
 _LGS_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

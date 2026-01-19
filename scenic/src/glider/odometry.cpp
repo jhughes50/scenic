@@ -37,6 +37,18 @@ Odometry::Odometry(gtsam::NavState& ns, int64_t timestamp, bool init)
     timestamp_ = timestamp;
 }
 
+Odometry::Odometry(int64_t timestamp, Eigen::Vector3d& position, Eigen::Quaterniond& orient)
+{
+    position_ = gtsam::Point3(position.x(), position.y(), position.z());
+    orientation_ = gtsam::Rot3::Quaternion(orient.w(), orient.x(), orient.y(), orient.z());
+    pose_ = gtsam::Pose3(orientation_, position_);
+    velocity_ = gtsam::Point3(0.0, 0.0, 0.0);
+    altitude_ = position_.z();
+    heading_ = orientation_.yaw();
+    initialized_ = true; 
+    timestamp_ = timestamp;
+}
+
 Odometry Odometry::Uninitialized()
 {
     Odometry odom;

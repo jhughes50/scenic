@@ -11,7 +11,9 @@
 
 #include "scenic/core/rectifier.hpp"
 #include "scenic/core/threaded_processor.hpp"
+#include "scenic/core/tracking_processor.hpp"
 #include "scenic/core/processor_inputs.hpp"
+#include "scenic/core/tracking_inputs.hpp"
 
 #include "stickyvo_lgs/lgs_frontend.hpp"
 #include "stickyvo/core.hpp"
