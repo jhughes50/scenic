@@ -35,7 +35,7 @@ TEST(ScenicTestSuite, TestClipperViaCore)
     cv::Mat img = cv::imread("../test/test.png", cv::IMREAD_COLOR);
     cv::resize(img, img, cv::Size(), 0.25, 0.25);
 
-    scenic_core.push(img, odom);
+    scenic_core.push(0, img);
     auto wake_time = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     std::this_thread::sleep_until(wake_time);
     std::shared_ptr<Scenic::Graph> graph = scenic_core.getGraph();

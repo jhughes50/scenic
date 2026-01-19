@@ -34,7 +34,7 @@ class Scenic
         void setText(std::vector<Text> text);
         std::shared_ptr<Graph> getGraph();
 
-        void push(const cv::Mat& img, const Glider::Odometry& odom); // dep
+        void push(int64_t timestamp, const cv::Mat& img); // dep
 
         void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img, bool segment);
         void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);

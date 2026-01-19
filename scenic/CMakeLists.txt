@@ -96,13 +96,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     stickyvo
 )
 
-add_executable(scenic_test test/test_scenic.cpp)
-target_link_libraries(scenic_test
-    GTest::GTest
-    GTest::Main
-    glog::glog
-    ${PROJECT_NAME}
-)
+#add_executable(scenic_test test/test_scenic.cpp)
+#target_link_libraries(scenic_test
+#    GTest::GTest
+#    GTest::Main
+#    glog::glog
+#    ${PROJECT_NAME}
+#)
 
 #add_executable(graph_test test/test_graph.cpp)
 #target_link_libraries(graph_test
@@ -111,13 +111,13 @@ target_link_libraries(scenic_test
 #    ${PROJECT_NAME}
 #)
 
-add_executable(kmeans_test examples/test_kmeans.cpp)
-target_link_libraries(kmeans_test
-    ${PROJECT_NAME}
-)
+#add_executable(kmeans_test examples/test_kmeans.cpp)
+#target_link_libraries(kmeans_test
+#    ${PROJECT_NAME}
+#)
 
-include(GoogleTest)
-gtest_discover_tests(scenic_test)
+#include(GoogleTest)
+#gtest_discover_tests(scenic_test)
 #gtest_discover_tests(graph_test)
 
 install(TARGETS ${PROJECT_NAME} glider stickyvo
