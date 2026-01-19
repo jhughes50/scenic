@@ -161,7 +161,7 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
 
     // add gps measurement to factor graph as gtsam object
     graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
-    //graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, orient_noise_);
+    graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, orient_noise_);
 
     if (imu_initialized_ && compose_odom_)
     {   
