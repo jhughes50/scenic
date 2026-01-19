@@ -179,6 +179,9 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
         gtsam::Pose3 scaled_pose(last_odom_.rotation(), last_odom_.translation()*scale);
         graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(X(key_index_-1), X(key_index_), scaled_pose, odom_noise_));
         graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), odom_orient_, orient_noise_);
+
+        compose_odom_ = false;
+
     }
 
     // increment key index
