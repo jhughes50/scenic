@@ -51,7 +51,7 @@ class Odometry
          *  @param timestamp: the current timestamp
          *  @param init: should the constructor call initialize the odometry */
         Odometry(gtsam::NavState& ns, int64_t timestamp, bool init = true);
-
+        Odometry(int64_t timestamp, Eigen::Vector3d& position, Eigen::Quaterniond& orient);
         /*! @brief gets the full pose from odometry
          *  @return the 3D position in UTM frame and orientation in ENU frame
          *  @type T: gtsam::Pose3

@@ -48,6 +48,7 @@ class Scenic
         bool isNewGraph() const;
 
         cv::Mat getGraphImage() const;
+        Glider::Odometry getVisualOdometry() const;
 
     private:
         TextMap texts_;
@@ -70,6 +71,7 @@ class Scenic
 
         std::unique_ptr<Glider::Glider> glider_;
         Glider::OdometryWithCovariance current_state_;
+        Glider::Odometry visual_odom_;
         mutable std::mutex img_proc_mutex_;
 };
 } // namespace Scenic

@@ -162,7 +162,8 @@ void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
         LOG_FIRST_N(INFO, 1) << "[SCENIC] Tacking Initialized";
         tracking_initialized_ = true;
         glider_->addOdometry(to->stampi, to->position, to->orientation);
-        
+        visual_odom_ = Glider::Odometry(to->stampi, to->position, to->orientation);
+
         std::lock_guard<std::mutex> lock(img_proc_mutex_);
         if (pid_status_map_.find(to->pid) != pid_status_map_.end()) {
             // the pid is in the map we also segmented the image
@@ -189,6 +190,11 @@ bool Scenic::isInitialized() const
 bool Scenic::isNewGraph() const
 {
     return new_graph_;
+}
+
+Glider::Odometry Scenic::getVisualOdometry() const
+{
+    return visual_odom_;
 }
 
 cv::Mat Scenic::getGraphImage() const
