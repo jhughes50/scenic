@@ -5,6 +5,7 @@
 * @About orchestrate all the threads
 */
 
+#include <csignal>
 #include <glog/logging.h>
 #include "scenic/core/scenic.hpp"
 #define LOG(severity) google::LogMessage(__FILE__, __LINE__, google::GLOG_##severity).stream()
@@ -29,7 +30,12 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
     });
 
     graph_processor_ = std::make_unique<GraphingProcessor>(capacity, params_path+"blackfly-5mm.yaml");
-    graph_processor_->setCallback([this](std::shared_ptr<Graph> go) {
+    graph_processor_->setCallback([this](std::shared_ptr<GraphWithPose> go) {
+        this->imageGraphCallback(go);
+    });
+
+    stitching_processor_ = std::make_unique<StitchingProcessor>(capacity, params_path+"blackfly-5mm.yaml");
+    stitching_processor_->setCallback([this](std::shared_ptr<Graph> go) {
         this->graphCallback(go);
     });
 
@@ -53,6 +59,7 @@ void Scenic::start()
     tracking_processor_->start();
     seg_processor_->start();
     graph_processor_->start();
+    stitching_processor_->start();
 }
 
 void Scenic::stop()
@@ -61,6 +68,7 @@ void Scenic::stop()
     tracking_processor_->stop();
     seg_processor_->stop();
     graph_processor_->stop();
+    stitching_processor_->stop();
 }   
 
 void Scenic::setText(std::vector<Text> text)
@@ -134,29 +142,6 @@ Glider::OdometryWithCovariance Scenic::addGPS(int64_t timestamp, Eigen::Vector3d
     return current_state_;
 }
 
-void Scenic::graphCallback(std::shared_ptr<Graph> go)
-{
-    LOG(INFO) << "[SCENIC] Finished PID: " << go->getProcessID();
-    graph_ = go;
-    new_graph_ = true;
-}
-
-void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
-{
-    LOG(INFO) << "[SCENIC] Got Segmentation Output with PID " << so->pid;
-    // BELOW is for tracking
-    //std::lock_guard<std::mutex> lock(img_proc_mutex_);
-    //if (pid_status_map_[so->pid]) {
-    //    // get the tracking output for this pid and
-    //    // pass to the graph constructor.
-    //    std::shared_ptr<TrackingOutput> to = pid_to_map_.get(so->pid);
-    //    LOG(INFO) << "[SCENIC] Got TrackingOutput first for " << so->pid;
-    //} else {
-    //    pid_status_map_[so->pid] = true;
-    //    pid_gi_map_.insert(so->pid, so);
-    //}
-    graph_processor_->push(*so);
-}
 
 void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
 {
@@ -182,6 +167,37 @@ void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
     } else {
         LOG(INFO) << "[SCENIC] Waiting for Tracking to initialize";
     }
+}
+
+void Scenic::segmentationCallback(std::shared_ptr<GraphingInput> so)
+{
+    LOG(INFO) << "[SCENIC] Got Segmentation Output with PID " << so->pid;
+    // BELOW is for tracking
+    //std::lock_guard<std::mutex> lock(img_proc_mutex_);
+    //if (pid_status_map_[so->pid]) {
+    //    // get the tracking output for this pid and
+    //    // pass to the graph constructor.
+    //    std::shared_ptr<TrackingOutput> to = pid_to_map_.get(so->pid);
+    //    LOG(INFO) << "[SCENIC] Got TrackingOutput first for " << so->pid;
+    //} else {
+    //    pid_status_map_[so->pid] = true;
+    //    pid_gi_map_.insert(so->pid, so);
+    //}
+    graph_processor_->push(*so);
+}
+
+void Scenic::imageGraphCallback(std::shared_ptr<GraphWithPose> go)
+{
+    LOG(INFO) << "[SCENIC] Got Image Graph from PID: " << go->graph->getProcessID();
+    stitching_processor_->push(*go);
+}
+
+void Scenic::graphCallback(std::shared_ptr<Graph> go)
+{
+    LOG(INFO) << "[SCENIC] Finished PID: " << go->getProcessID();
+    // do something
+    graph_ = go;
+    new_graph_ = true;
 }
 
 bool Scenic::isInitialized() const

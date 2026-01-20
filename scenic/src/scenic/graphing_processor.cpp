@@ -13,7 +13,7 @@ GraphingProcessor::GraphingProcessor(size_t capacity, const std::string& rect_pa
 {
 }
 
-void GraphingProcessor::setCallback(std::function<void(std::shared_ptr<Graph>)> callback)
+void GraphingProcessor::setCallback(std::function<void(std::shared_ptr<GraphWithPose>)> callback)
 {
     outputCallback = callback;
 }
@@ -38,7 +38,7 @@ void GraphingProcessor::processBuffer()
             //    graph = region_graph + object_graph;
             //}
             Traversability::addTraversability(graph, raw_input);
-            std::shared_ptr p_graph = std::make_shared<Graph>(graph);
+            std::shared_ptr p_graph = std::make_shared<GraphWithPose>(graph, raw_input->odom);
 
             if (outputCallback) outputCallback(p_graph);
         }

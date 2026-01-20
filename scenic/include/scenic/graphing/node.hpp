@@ -33,6 +33,11 @@ class Node
         uint64_t getNodeID() const;
         size_t getClassLabel() const;
         GraphLevel getNodeLevel() const;
+        UTMPoint getUtmCoordinate() const;
+        LatLonPoint getLatLonCoordinate() const;
+
+        void setUtmCoordinate(double easting, double northing);
+        void setLatLonCoordinate(double lat, double lon);
 
     private:
         UTMPoint utm_;

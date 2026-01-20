@@ -16,6 +16,7 @@
 #include "scenic/core/segmentation_processor.hpp"
 #include "scenic/core/graphing_processor.hpp"
 #include "scenic/core/tracking_processor.hpp"
+#include "scenic/core/stitching_processor.hpp"
 #include "scenic/graphing/graph.hpp"
 #include "scenic/utils/fixed_map.hpp"
 
@@ -42,8 +43,9 @@ class Scenic
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
         void trackingCallback(std::shared_ptr<TrackingOutput> to);
+        void imageGraphCallback(std::shared_ptr<GraphWithPose> go);
         void graphCallback(std::shared_ptr<Graph> go);
-        
+
         bool isInitialized() const;
         bool isNewGraph() const;
 
@@ -57,6 +59,7 @@ class Scenic
         std::unique_ptr<SegmentationProcessor> seg_processor_;
         std::unique_ptr<GraphingProcessor> graph_processor_; 
         std::unique_ptr<TrackingProcessor> tracking_processor_;
+        std::unique_ptr<StitchingProcessor> stitching_processor_;
 
         bool initialized_{false};
         bool new_graph_{false};

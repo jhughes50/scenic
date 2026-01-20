@@ -52,3 +52,25 @@ cv::Point Node::getPixelCoordinate() const
 {
     return pixel_;
 }
+
+void Node::setUtmCoordinate(double easting, double northing)
+{
+    utm_.easting = easting;
+    utm_.northing = northing;
+}
+
+UTMPoint Node::getUtmCoordinate() const
+{
+    return utm_;
+}
+
+void Node::setLatLonCoordinate(double lat, double lon)
+{
+    latlon_.latitude = lat;
+    latlon_.longitude = lon;
+}
+
+LatLonPoint Node::getLatLonCoordinate() const
+{
+    return latlon_;
+}

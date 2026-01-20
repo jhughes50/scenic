@@ -24,7 +24,8 @@ struct Traversability
 inline void Traversability::addTraversability(Graph& graph, const std::unique_ptr<GraphingInput>& input)
 {
     // we need to get the class of the node and its traversability score
-    for (const auto& [key, node] : graph.getRegionNodes()) {
+    for (const std::shared_ptr<Node>& node : graph.getRegionNodes()) {
+        uint64_t key = node->getNodeID();
         cv::Point p1 = node->getPixelCoordinate();
         size_t node_lbl = node->getClassLabel();
         for(const std::shared_ptr<Node> connected : node->getConnectedNodes()) {

@@ -29,16 +29,27 @@ std::map<uint64_t, std::shared_ptr<Node>> Graph::getNodes() const
     return nodes_;
 }
 
-std::map<uint64_t, std::shared_ptr<Node>> Graph::getRegionNodes() const
+std::vector<std::shared_ptr<Node>> Graph::getRegionNodes() const
 {
-    std::map<uint64_t, std::shared_ptr<Node>> region_nodes;
+    std::vector<std::shared_ptr<Node>> region_nodes;
     for (const auto& [key, node] : nodes_) {
         if (node->getNodeLevel() == GraphLevel::REGION) {
-            region_nodes[key] = node;
+            region_nodes.push_back(node);
         }
     }
 
     return region_nodes;
+}
+
+std::vector<std::shared_ptr<Node>> Graph::getObjectNodes() const
+{
+    std::vector<std::shared_ptr<Node>> object_nodes;
+    for (const auto& [key, node] : nodes_) {
+        if (node->getNodeLevel() == GraphLevel::OBJECT) {
+            object_nodes.push_back(node);
+        }
+    }
+    return object_nodes;
 }
 
 std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> Graph::getEdges() const
@@ -51,6 +62,12 @@ std::shared_ptr<Edge> Graph::operator()(uint64_t nid1, uint64_t nid2)
     return getEdge(nid1, nid2);
 }
 
+void Graph::addNode(std::shared_ptr<Node> node)
+{
+    uint64_t nid = node->getNodeID();
+    nodes_[nid] = node;
+}
+
 std::shared_ptr<Edge> Graph::getEdge(uint64_t nid1, uint64_t nid2)
 {
     std::pair<uint64_t, uint64_t> node_pair(nid1, nid2);
@@ -60,6 +77,24 @@ std::shared_ptr<Edge> Graph::getEdge(uint64_t nid1, uint64_t nid2)
     }
 
     return edge;
+}
+
+void Graph::addEdge(std::shared_ptr<Node> n1, std::shared_ptr<Node> n2)
+{
+    if (nodes_.find(n1->getNodeID()) == nodes_.end()) {
+        LOG(WARNING) << "[SCENIC] Trying to add edge with node that doesn't exist, adding node to graph";
+        uint64_t nid = n1->getNodeID();
+        nodes_[nid] = n1;
+    }
+    if (nodes_.find(n2->getNodeID()) == nodes_.end()) {
+        LOG(WARNING) << "[SCENIC] Trying to add edge with node that doesn't exist, adding node to graph";
+        uint64_t nid = n2->getNodeID();
+        nodes_[nid] = n2; 
+    }
+
+    std::shared_ptr<Edge> edge = std::make_shared<Edge>(n1, n2);
+    std::pair<uint64_t, uint64_t> idp(n1->getNodeID(), n2->getNodeID());
+    edges_[idp] = edge;
 }
 
 void Graph::initEdges()

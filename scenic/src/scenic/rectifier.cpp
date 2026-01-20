@@ -230,6 +230,12 @@ T Rectifier::getIntrinsics() const
 }
 
 template<typename T>
+T Rectifier::getDistortion() const
+{
+    return distortion_;
+}
+
+template<typename T>
 T Rectifier::getOutputIntrinsics() const
 {
     if constexpr (std::is_same_v<T, Eigen::Matrix3d>)

@@ -78,6 +78,7 @@ add_library(${PROJECT_NAME} SHARED
     src/scenic/segmentation_processor.cpp
     src/scenic/graphing_processor.cpp
     src/scenic/tracking_processor.cpp
+    src/scenic/stitching_processor.cpp
     src/scenic/scenic.cpp
     src/scenic/node.cpp
     src/scenic/graph.cpp
