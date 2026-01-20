@@ -82,14 +82,21 @@ void StitchingProcessor::checkRegionNodes(const std::shared_ptr<Graph>& graph)
 
 void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph)
 {
-    for (const std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
-        for (const std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
+    for (const std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
+        double closest_dist = std::numeric_limits<double>::max();
+        std::shared_ptr<Node> closest_node;
+        for (const std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
             // if distance is greater than n meters add the object node
             // TODO make this a parameter
-            if (calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate()) > 5.0) {
-                LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << proposed->getNodeID();
-                scene_graph_->addNode(proposed); 
+            double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
+            if (distance < closest_dist) {
+                closest_dist = distance;
+                closest_node = proposed;
             }
+        }
+        if (closest_dist > 5.0 && !scene_graph_->contains(closest_node->getNodeID())) {
+            LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << closest_node->getNodeID();
+            scene_graph_->addNode(closest_node);
         }
     }
 }
@@ -119,10 +126,10 @@ void StitchingProcessor::processBuffer()
                 checkRegionNodes(graph);
                 checkObjectNodes(graph);
                 scene_graph_->setProcessID(graph->getProcessID());
+            if (scene_graph_) outputCallback(scene_graph_);
             }
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        if (scene_graph_) outputCallback(scene_graph_);
     }
 }

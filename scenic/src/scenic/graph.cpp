@@ -134,6 +134,15 @@ void Graph::setProcessID(int p)
     pid_ = p;
 }
 
+bool Graph::contains(uint64_t nid) const
+{
+    if (nodes_.find(nid) != nodes_.end()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 cv::Mat Graph::DrawGraph(Graph& graph, const cv::Mat& image)
 {
     cv::Mat display = image.clone();

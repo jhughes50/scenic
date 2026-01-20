@@ -69,6 +69,8 @@ class Graph
         int getProcessID() const; 
         void setProcessID(int p);
 
+        bool contains(uint64_t nid) const;
+
     protected:
         void initEdges();
 
