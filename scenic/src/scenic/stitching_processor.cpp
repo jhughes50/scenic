@@ -19,7 +19,10 @@ void StitchingProcessor::setCallback(std::function<void(std::shared_ptr<Graph>)>
 
 void StitchingProcessor::localizeNodes(std::shared_ptr<Graph> graph)
 {
-    // TODO;
+    for (std::shared_ptr<Node>& node : graph.getNodes()) {
+        cv::Point px = node.getPixelCoordinate();
+
+    }
 }
 
 void StitchingProcessor::processBuffer()
