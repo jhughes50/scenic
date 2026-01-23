@@ -17,6 +17,7 @@ find_package(Eigen3 REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(GTSAM_UNSTABLE REQUIRED)
 find_package(Ceres REQUIRED)
+find_package(TBB REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
@@ -32,6 +33,7 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
     ${GTSAM_INCLUDE_DIR}
     ${yaml-cpp_INCLUDE_DIRS}
+    ${TBB_INLCUDE_DIRS}
 )
 
 # STICKY VO LIB
@@ -84,17 +86,24 @@ add_library(${PROJECT_NAME} SHARED
     src/scenic/graph.cpp
     src/scenic/edge.cpp
     src/scenic/rectifier.cpp
+    src/scenic/localization.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     ${OpenCV_LIBRARIES}
     ${JSONCPP_LIBRARIES}
     yaml-cpp
+    tbb
     glog::glog
     Clipper::clipper
     lgs::lgs
     glider
     stickyvo
+)
+
+add_executable(lloyds_test examples/test_lloyds.cpp)
+target_link_libraries(lloyds_test
+  ${OpenCV_LIBRARIES}
 )
 
 #add_executable(scenic_test test/test_scenic.cpp)

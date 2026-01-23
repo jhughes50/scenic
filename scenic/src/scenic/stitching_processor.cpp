@@ -51,59 +51,92 @@ void StitchingProcessor::localizeNodes(std::shared_ptr<Graph>& graph, const Eige
 
 void StitchingProcessor::checkRegionNodes(const std::shared_ptr<Graph>& graph)
 {
-    std::unordered_map<uint64_t, std::pair<uint64_t, double>> node_pairs;
-    for (const std::shared_ptr<Node>& proposed : graph->getRegionNodes()) {
+    for (const std::shared_ptr<Node> proposed : graph->getRegionNodes()) {
+        // skip the node if its an island... its not traversable
+        if(proposed->getConnectedIDs().empty()) continue;
         double closest_dist = std::numeric_limits<double>::max();
         std::shared_ptr<Node> closest_node;
-        for (const std::shared_ptr<Node>& existing : scene_graph_->getRegionNodes()) {
-            double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
-            if (distance < closest_dist) {
-                closest_dist = distance;
-                closest_node = existing;
-            }
-        }
-        if (closest_node) {
-            node_pairs[proposed->getNodeID()] = std::make_pair(closest_node->getNodeID(), closest_dist);
-        }
-    }
-
-    for (const auto& [pid, eidd] : node_pairs) {
-        if (eidd.second > 10.0) {
-            LOG(INFO) << "[SCENIC] Adding Region Node To Scene Graph: " << pid;
-            scene_graph_->addNode(graph->getNode(pid));
-        }
-    }
-
-    for (const auto& [pid, eidd] : node_pairs) {
-        if (eidd.second > 10.0) {
-            for (uint64_t nid : graph->getNode(pid)->getConnectedIDs()) {
-                if (node_pairs.find(nid) != node_pairs.end() && node_pairs[nid].second > 10.0) {
-                    scene_graph_->addEdge(scene_graph_->getNode(pid), scene_graph_->getNode(nid));
+        // find the closest node in the graph
+        for (const std::shared_ptr<Node> existing : scene_graph_->getRegionNodes()) {
+            if (existing && proposed) {
+                double dist = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
+                if(dist < closest_dist) {
+                    closest_dist = dist;
+                    closest_node = existing;
                 }
             }
+        }
+        // If the closest nodes is moe than X m away, 
+        // add the nodes to the graph and connect it to the closest 
+        // region node.
+        // TODO Make this a paramater
+        if (closest_node && closest_dist > 5.0) {
+            LOG(INFO) << "[SCENIC] Adding Region Node: " << proposed->getNodeID();
+            scene_graph_->addNode(proposed);
+            scene_graph_->addEdge(proposed, closest_node);
+            scene_graph_->addEdge(closest_node, proposed);
+            // TODO score this edge somehow
         }
     }
 }
 
+void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coords, const std::shared_ptr<Graph>& graph, const GraphingInput& imagery)
+{
+    //std::vector<cv::Mat> channels;
+    //cv::split(coords, channels);
+
+    //double min_easting, max_easting;
+    //cv::minMaxLoc(channels[0], &min_easting, &max_easting);
+
+    //double min_northing, max_northing;
+    //cv::minMaxLoc(channels[1], &min_northing, &max_northing);
+
+    //std::vector<cv::Point> back_proped_pixels;
+    //for (const std::shared_ptr<Node> existing : scene_graph_->getRegionNodes()) {
+    //    UTMPoint utm = existing->getUtmCoordinate();
+    //    if (utm.easting >= min_easting && utm.easting <= max_easting && utm.northing >= min_northing && utm.northing <= max_northing) {
+    //        BufferSearchCoordinates searcher(coords, utm);
+    //        std::pair<int, int> c = searcher.search(); 
+    //        cv::Point pixel(c.first, c.second);
+
+    //        back_proped_pixels.push_back(pixel);
+    //    }
+    //}
+    //
+    //std::vector<double> distances;
+    //if (back_proped_pixels.size() > 1) {
+    //    for (int i = 0; i < back_proped_pixels.size() - 1; i++) {
+    //        double dist = cv::norm(back_proped_pixels[i], back_proped_pixels[i+1]);
+    //        distances.push_back(dist);
+    //    }
+    //    double sum = std::accumulate(distances.begin(), distances.end(), 0.0);
+    //    double avg = sum / distances.size();
+    //} else {
+    //    // Maybe we can handle this with proposed nodes;
+    //    LOG(WARNING) << "[SCENIC] You may be cooked here captain";
+    //}
+
+}
+
 void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph)
 {
-    for (const std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
-        double closest_dist = std::numeric_limits<double>::max();
-        std::shared_ptr<Node> closest_node;
-        for (const std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
-            // if distance is greater than n meters add the object node
-            // TODO make this a parameter
-            double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
-            if (distance < closest_dist) {
-                closest_dist = distance;
-                closest_node = proposed;
-            }
-        }
-        if (closest_dist > 10.0 && !scene_graph_->contains(closest_node->getNodeID())) {
-            LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << closest_node->getNodeID();
-            scene_graph_->addNode(closest_node);
-        }
-    }
+    //for (const std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
+    //    double closest_dist = std::numeric_limits<double>::max();
+    //    std::shared_ptr<Node> closest_node;
+    //    for (const std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
+    //        // if distance is greater than n meters add the object node
+    //        // TODO make this a parameter
+    //        double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
+    //        if (distance < closest_dist) {
+    //            closest_dist = distance;
+    //            closest_node = proposed;
+    //        }
+    //    }
+    //    if (closest_dist > 10.0 && !scene_graph_->contains(closest_node->getNodeID())) {
+    //        LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << closest_node->getNodeID();
+    //        scene_graph_->addNode(closest_node);
+    //    }
+    //}
 }
 
 double StitchingProcessor::calculateDistance(const UTMPoint& p1, const UTMPoint& p2)
@@ -121,12 +154,23 @@ void StitchingProcessor::processBuffer()
                 // graph is not initialized so we do that
                 // this should only happend the first entry,
                 // or if we need to reset for some reason
+                LOG(INFO) << "[SCENIC] Initializing Scene Graph";
                 scene_graph_ = raw_input->graph;
                 localizeNodes(scene_graph_, raw_input->odom.getPose<Eigen::Isometry3d>());
             } else {
                 // localize points in utm frame
+                cv::Mat coords = cv::Mat::zeros(384, 512, CV_64FC2);
+                cv::Mat K = rectifier_.getIntrinsics<cv::Mat>();
+                cv::Mat D = rectifier_.getDistortion<cv::Mat>();
+
                 std::shared_ptr<Graph> graph = raw_input->graph;
                 Eigen::Isometry3d pose = raw_input->odom.getPose<Eigen::Isometry3d>();
+                
+                BufferLocalization localize_image(coords, K, D, pose);
+                int r = coords.rows;
+                int c = coords.cols;
+                tbb::parallel_reduce(tbb::blocked_range2d<int>(0, r, 0, c), localize_image);
+
                 localizeNodes(graph, pose);
                 checkRegionNodes(graph);
                 checkObjectNodes(graph);

@@ -94,6 +94,7 @@ void Scenic::push(int64_t timestamp, const cv::Mat& img)
     if (texts_.text.size() > 0 && current_state_.isInitialized()) {
         pid_img_map_.insert(pid, img.clone());
         Glider::Odometry odom = glider_->interpolate(timestamp);
+        odom.setAltitude(30.0);
         SegmentationInput seg_model_input(pid, img, odom, texts_);
         seg_processor_->push(seg_model_input);
     }

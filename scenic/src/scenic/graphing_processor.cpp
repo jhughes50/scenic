@@ -38,7 +38,7 @@ void GraphingProcessor::processBuffer()
             //    graph = region_graph + object_graph;
             //}
             Traversability::addTraversability(graph, raw_input);
-            std::shared_ptr p_graph = std::make_shared<GraphWithPose>(graph, raw_input->odom);
+            std::shared_ptr p_graph = std::make_shared<GraphWithPose>(graph, raw_input->odom, *raw_input);
 
             if (outputCallback) outputCallback(p_graph);
         }

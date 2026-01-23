@@ -14,6 +14,8 @@
 #include "scenic/core/rectifier.hpp"
 #include "scenic/core/stitching_inputs.hpp"
 #include "scenic/utils/transforms.hpp"
+#include "scenic/core/localization.hpp"
+#include "scenic/core/buffer_search_coords.hpp"
 
 namespace Scenic
 {
@@ -35,6 +37,8 @@ class StitchingProcessor : public ThreadedProcessor<GraphWithPose>
         void localizeNodes(std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose);   
         void checkRegionNodes(const std::shared_ptr<Graph>& graph);
         void checkObjectNodes(const std::shared_ptr<Graph>& graph);
+        void regionRegistrationViaBackProjection(const cv::Mat& coords, const std::shared_ptr<Graph>& graph, const GraphingInput& gi);
+
 
         std::shared_ptr<Graph> scene_graph_;
         Rectifier rectifier_;

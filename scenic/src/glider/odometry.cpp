@@ -230,6 +230,13 @@ double Odometry::getAltitude() const
     return altitude_;
 }
 
+void Odometry::setAltitude(double alt)
+{
+    altitude_ = alt;
+    position_ = gtsam::Point3(position_.x(), position_.y(), alt);
+    pose_ = gtsam::Pose3(pose_.rotation(), position_);
+}
+
 double Odometry::getHeadingDegrees() const
 {
     double heading_deg = (heading_ * 180.0) / M_PI;
