@@ -71,6 +71,8 @@ class Graph
 
         bool contains(uint64_t nid) const;
 
+        void pruneEdge(std::shared_ptr<Edge> edge);
+
     protected:
         void initEdges();
 

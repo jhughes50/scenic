@@ -38,7 +38,7 @@ class Scenic
         void push(int64_t timestamp, const cv::Mat& img); // dep
 
         void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img, bool segment);
-        void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
+        Glider::Odometry addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
         Glider::OdometryWithCovariance addGPS(int64_t timestamp, Eigen::Vector3d& gps);
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
@@ -55,7 +55,8 @@ class Scenic
     private:
         TextMap texts_;
         std::shared_ptr<Graph> graph_;
-    
+        std::shared_ptr<Graph> image_graph_;
+        
         std::unique_ptr<SegmentationProcessor> seg_processor_;
         std::unique_ptr<GraphingProcessor> graph_processor_; 
         std::unique_ptr<TrackingProcessor> tracking_processor_;

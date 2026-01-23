@@ -143,6 +143,22 @@ bool Graph::contains(uint64_t nid) const
     }
 }
 
+void Graph::pruneEdge(std::shared_ptr<Edge> edge)
+{
+    std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>> pair = edge->getNodePair();
+    std::pair<uint64_t, uint64_t> nids(pair.first->getNodeID(), pair.second->getNodeID());
+    std::pair<uint64_t, uint64_t> rnids(pair.second->getNodeID(), pair.first->getNodeID());
+    // erase by key if they are found
+    if (edges_.find(nids) != edges_.end()) {
+        edges_.erase(nids);
+    }
+    if (edges_.find(rnids) != edges_.end()) {
+        edges_.erase(rnids);
+    }
+    pair.first->removeConnectedNode(pair.second);
+    pair.second->removeConnectedNode(pair.first);
+}
+
 cv::Mat Graph::DrawGraph(Graph& graph, const cv::Mat& image)
 {
     cv::Mat display = image.clone();
@@ -247,7 +263,7 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmea
     KMeansOutput output;
     AdjacencyOutput graph;
     try {
-        int k = 2; //kmeans.getNumClusters(region_mask,30);// input.odom.getAltitude());
+        int k = kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
         output = kmeans.cluster(region_mask, k); 
         graph = kmeans.connectRegions(output.points, output.voronoi, k);
     } catch (const cv::Exception& e) {
@@ -279,19 +295,23 @@ void RegionGraph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point
     setEmptyStatus(false);
     std::map<uchar, uint64_t> uid_map;
     for (const auto& [key, vals] : adj.adjacency) {
-        uint64_t uid = UIDGenerator::getNextUID();
-        uid_map[key] = uid;
-        cv::Point pixel_coord = centroids[key];
-        size_t cls_label = labels[key];
-        std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
-        nodes_[uid] = n;
+        if (centroids.find(key) != centroids.end()) {
+            uint64_t uid = UIDGenerator::getNextUID();
+            uid_map[key] = uid;
+            cv::Point pixel_coord = centroids[key];
+            size_t cls_label = labels[key];
+            std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
+            nodes_[uid] = n;
+        }
     }
 
     for (const auto& [key, vals] : adj.adjacency) {
         for (const uchar& v : vals) {
-            uint64_t parent_id = uid_map[key];
-            uint64_t child_id = uid_map[v];
-            nodes_[parent_id]->addConnection(nodes_[child_id]);
+            if (uid_map.find(key) != uid_map.end() and uid_map.find(v) != uid_map.end()) {
+                uint64_t parent_id = uid_map[key];
+                uint64_t child_id = uid_map[v];
+                nodes_[parent_id]->addConnection(nodes_[child_id]);
+            }
         }
     }
 }
@@ -311,11 +331,30 @@ ObjectGraph ObjectGraph::ObjectAnalysis(const GraphingInput& input)
                                                                 8,
                                                                 CV_32S);
 
+            std::vector<bool> merged(num_clusters, false);
+            double merge_threshold = 30.0;
             for (int j = 1; j < num_clusters; j++) {
                 cv::Point centroid(centroids.at<double>(j, 0), centroids.at<double>(j, 1));
-                cluster_centroids.push_back(centroid);
+                
+                // Check if this centroid is close to any existing cluster
+                bool merged = false;
+                for (int c = 0; c < cluster_centroids.size(); c++) {
+                    double dist = cv::norm(centroid - cluster_centroids[c]);
+                    if (dist < merge_threshold) {
+                        // Average this centroid into the existing cluster
+                        cluster_centroids[c].x = (cluster_centroids[c].x + centroid.x) / 2;
+                        cluster_centroids[c].y = (cluster_centroids[c].y + centroid.y) / 2;
+                        merged = true;
+                        break;
+                    }
+                }
+                
+                // If not merged, add as new cluster
+                if (!merged) {
+                    cluster_centroids.push_back(centroid);
+                }
             }
-            graph.setNodes(cluster_centroids, input.map[i].uid);
+            graph.setNodes(cluster_centroids, input.map[i].uid);       
         }
     }
     return graph;

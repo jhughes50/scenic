@@ -62,19 +62,24 @@ void StitchingProcessor::checkRegionNodes(const std::shared_ptr<Graph>& graph)
                 closest_node = existing;
             }
         }
-        node_pairs[proposed->getNodeID()] = std::make_pair(closest_node->getNodeID(), closest_dist);
+        if (closest_node) {
+            node_pairs[proposed->getNodeID()] = std::make_pair(closest_node->getNodeID(), closest_dist);
+        }
     }
 
-    // break this up to ensure new nodes are connected to old nodes
-    // add the edges
     for (const auto& [pid, eidd] : node_pairs) {
         if (eidd.second > 10.0) {
-            LOG(INFO) << "[SCENIC] Adding Region Node To Scene Graph: " << pid; 
+            LOG(INFO) << "[SCENIC] Adding Region Node To Scene Graph: " << pid;
             scene_graph_->addNode(graph->getNode(pid));
+        }
+    }
+
+    for (const auto& [pid, eidd] : node_pairs) {
+        if (eidd.second > 10.0) {
             for (uint64_t nid : graph->getNode(pid)->getConnectedIDs()) {
-                std::pair<uint64_t, double> existing = node_pairs[nid];
-                scene_graph_->addEdge(scene_graph_->getNode(pid), scene_graph_->getNode(existing.first));
-                // TODO how do I score this edge
+                if (node_pairs.find(nid) != node_pairs.end() && node_pairs[nid].second > 10.0) {
+                    scene_graph_->addEdge(scene_graph_->getNode(pid), scene_graph_->getNode(nid));
+                }
             }
         }
     }
@@ -94,7 +99,7 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph)
                 closest_node = proposed;
             }
         }
-        if (closest_dist > 5.0 && !scene_graph_->contains(closest_node->getNodeID())) {
+        if (closest_dist > 10.0 && !scene_graph_->contains(closest_node->getNodeID())) {
             LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << closest_node->getNodeID();
             scene_graph_->addNode(closest_node);
         }

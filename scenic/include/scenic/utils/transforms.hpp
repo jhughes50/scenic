@@ -27,7 +27,7 @@ struct Transforms
 
         T_cam_imu.translation() << 0.036, -0.008, -0.0877;
         T_cam_imu.linear() = (Eigen::Matrix3d() << 0.0, -1.0, 0.0,
-                                                   1.0, 0.0, 0.0, 
+                                                   -1.0, 0.0, 0.0, 
                                                    0.0, 0.0, -1.0).finished();
         T_imu_cam = T_cam_imu.inverse();
     }

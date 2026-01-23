@@ -39,6 +39,8 @@ class Node
         void setUtmCoordinate(double easting, double northing);
         void setLatLonCoordinate(double lat, double lon);
 
+        void removeConnectedNode(std::shared_ptr<Node> node);
+
     private:
         UTMPoint utm_;
         LatLonPoint latlon_;
