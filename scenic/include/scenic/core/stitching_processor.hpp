@@ -16,9 +16,19 @@
 #include "scenic/utils/transforms.hpp"
 #include "scenic/core/localization.hpp"
 #include "scenic/core/buffer_search_coords.hpp"
+#include "scenic/graphing/kmeans.hpp"
+
 
 namespace Scenic
 {
+struct PointCompare 
+{
+    bool operator()(const cv::Point& a, const cv::Point& b) const 
+    {
+        if (a.x != b.x) return a.x < b.x;
+        return a.y < b.y;
+    }
+};
 
 class StitchingProcessor : public ThreadedProcessor<GraphWithPose>
 {
@@ -34,14 +44,16 @@ class StitchingProcessor : public ThreadedProcessor<GraphWithPose>
        
         // helper functions
         double calculateDistance(const UTMPoint& p1, const UTMPoint& p2);
-        void localizeNodes(std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose);   
+        void localizeNodes(std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose);
+        void localizeNode(std::shared_ptr<Node>& node, const Eigen::Isometry3d& pose);
         void checkRegionNodes(const std::shared_ptr<Graph>& graph);
         void checkObjectNodes(const std::shared_ptr<Graph>& graph);
-        void regionRegistrationViaBackProjection(const cv::Mat& coords, const std::shared_ptr<Graph>& graph, const GraphingInput& gi);
+        void regionRegistrationViaBackProjection(const cv::Mat& coords, const GraphWithPose& gi);
 
 
         std::shared_ptr<Graph> scene_graph_;
         Rectifier rectifier_;
         Transforms transforms_;
+        KMeans kmeans_;
 };
 } // namespace Scenic

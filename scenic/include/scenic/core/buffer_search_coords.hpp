@@ -11,6 +11,7 @@
 #include <utility>
 #include <opencv2/opencv.hpp>
 #include <tbb/blocked_range2d.h>
+#include <tbb/parallel_for.h>
 
 #include "scenic/utils/geostructs.hpp"
 
@@ -21,6 +22,8 @@ class BufferSearchCoordinates
 {
     public:
         BufferSearchCoordinates(const cv::Mat& coords, UTMPoint target);
+        //BufferSearchCoordinates(const BufferSearchCoordinates& other);
+
         std::pair<int, int> search();
 
         void operator()(const tbb::blocked_range2d<int>& range) const;
@@ -31,8 +34,8 @@ class BufferSearchCoordinates
         UTMPoint target_;
         double tolerance_{1.0};
 
-        mutable std::atomic<int> row_;
-        mutable std::atomic<int> col_;
-        mutable std::atomic<bool> found_;
+        mutable std::shared_ptr<std::atomic<int>> row_;
+        mutable std::shared_ptr<std::atomic<int>> col_;
+        mutable std::shared_ptr<std::atomic<bool>> found_;
 };
 }

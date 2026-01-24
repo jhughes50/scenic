@@ -7,6 +7,7 @@
 
 #include "scenic/core/stitching_processor.hpp"
 #include <limits>
+#include <numeric>
 #include <unordered_map>
 
 using namespace Scenic;
@@ -49,6 +50,31 @@ void StitchingProcessor::localizeNodes(std::shared_ptr<Graph>& graph, const Eige
     }
 }
 
+void StitchingProcessor::localizeNode(std::shared_ptr<Node>& node, const Eigen::Isometry3d& pose)
+{ 
+    cv::Mat K = rectifier_.getIntrinsics<cv::Mat>();
+    cv::Mat D = rectifier_.getDistortion<cv::Mat>();
+    
+    cv::Point px = node->getPixelCoordinate();
+    cv::Point2d pixel(static_cast<double>(px.x), static_cast<double>(px.y));
+    std::vector<cv::Point2d> pixel_vec = {pixel};
+    
+    std::vector<cv::Point2d> undistorted;
+    cv::undistortPoints(pixel_vec, undistorted, K, D);
+
+    Eigen::Vector3d ray_cam(undistorted[0].x, undistorted[0].y, 1.0);
+    Eigen::Vector3d ray_imu = transforms_.T_imu_cam.linear() * ray_cam;
+    Eigen::Vector3d ray_world = pose.linear() * ray_imu;
+
+    double scale = -pose.translation().z() / ray_world(2);
+
+    ray_imu = scale * ray_imu;
+    Eigen::Vector3d pixel_imu = transforms_.T_imu_cam.translation() + ray_imu;
+    Eigen::Vector3d pixel_world = pose.translation() + (pose.linear() * pixel_imu);
+   
+    node->setUtmCoordinate(pixel_world(0), pixel_world(1));
+}
+
 void StitchingProcessor::checkRegionNodes(const std::shared_ptr<Graph>& graph)
 {
     for (const std::shared_ptr<Node> proposed : graph->getRegionNodes()) {
@@ -80,42 +106,99 @@ void StitchingProcessor::checkRegionNodes(const std::shared_ptr<Graph>& graph)
     }
 }
 
-void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coords, const std::shared_ptr<Graph>& graph, const GraphingInput& imagery)
+void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coords, const GraphWithPose& input)
 {
-    //std::vector<cv::Mat> channels;
-    //cv::split(coords, channels);
+    GraphingInput imagery = input.analysis;
+    size_t input_size = imagery.getSize();
+    // find max and min utm coords
+    std::vector<cv::Mat> channels;
+    cv::split(coords, channels);
 
-    //double min_easting, max_easting;
-    //cv::minMaxLoc(channels[0], &min_easting, &max_easting);
+    double min_easting, max_easting;
+    cv::minMaxLoc(channels[0], &min_easting, &max_easting);
 
-    //double min_northing, max_northing;
-    //cv::minMaxLoc(channels[1], &min_northing, &max_northing);
+    double min_northing, max_northing;
+    cv::minMaxLoc(channels[1], &min_northing, &max_northing);
+    // back project existing nodes into the image
+    std::vector<cv::Point2f> back_proj_pixels;
+    std::map<cv::Point, uint64_t, PointCompare> pixel_id_map;
+    for (const std::shared_ptr<Node> existing : scene_graph_->getRegionNodes()) {
+        UTMPoint utm = existing->getUtmCoordinate();
+        if (utm.easting >= min_easting && utm.easting <= max_easting && utm.northing >= min_northing && utm.northing <= max_northing) {
+            BufferSearchCoordinates searcher(coords, utm);
+            std::pair<int, int> c = searcher.search(); 
+            cv::Point ipixel(c.first, c.second);
+            cv::Point2f pixel(static_cast<float>(c.first), static_cast<float>(c.second));
+            if (c.first == -1 || c.second == -1) continue;
+            back_proj_pixels.push_back(pixel);
+            pixel_id_map[ipixel] = existing->getNodeID();
+        }
+    }
+   
+    // cluster the new nodes with the old nodes;
+    int region_count = 0;
+    cv::Mat region_mask = cv::Mat::zeros(imagery.image.size(), CV_8UC1); 
+    for (size_t i = 0; i < input_size; ++i) {
+        if (imagery.map[i].level == GraphLevel::REGION) {
+            cv::bitwise_or(region_mask, imagery.map[i].mask, region_mask);
+            region_count++;
+        }
+    }
+    // if there are no regions detected 
+    if (region_count == 0) return;
+    int k = 8;
+    int new_k = std::max(0, k - static_cast<int>(back_proj_pixels.size())); // if this is 0 we're not adding any new nodes... we can exit
+    if (new_k == 0) return;
+    KMeansOutput output = kmeans_.nFixedLloyds(region_mask, back_proj_pixels, new_k, 100, 1e-4);
+    AdjacencyOutput adj = kmeans_.connectRegions(output.points, output.voronoi, k);
 
-    //std::vector<cv::Point> back_proped_pixels;
-    //for (const std::shared_ptr<Node> existing : scene_graph_->getRegionNodes()) {
-    //    UTMPoint utm = existing->getUtmCoordinate();
-    //    if (utm.easting >= min_easting && utm.easting <= max_easting && utm.northing >= min_northing && utm.northing <= max_northing) {
-    //        BufferSearchCoordinates searcher(coords, utm);
-    //        std::pair<int, int> c = searcher.search(); 
-    //        cv::Point pixel(c.first, c.second);
+    std::map<uchar, cv::Point> centers;
+    std::unordered_map<uchar, size_t> labels;
+    for (int i = back_proj_pixels.size(); i < output.centroids.size(); i++) {
+        cv::Point p = output.centroids[i];
+        uchar region_id = output.voronoi.at<uchar>(p);
+        centers[region_id] = p;
+        for (size_t j = 0; j < input_size; ++j) { 
+            if (imagery.map[j].mask.at<uchar>(p) == 1) {
+                labels[region_id] = imagery.map[j].uid;
+                break;
+            }
+        }
+    }
 
-    //        back_proped_pixels.push_back(pixel);
-    //    }
-    //}
-    //
-    //std::vector<double> distances;
-    //if (back_proped_pixels.size() > 1) {
-    //    for (int i = 0; i < back_proped_pixels.size() - 1; i++) {
-    //        double dist = cv::norm(back_proped_pixels[i], back_proped_pixels[i+1]);
-    //        distances.push_back(dist);
-    //    }
-    //    double sum = std::accumulate(distances.begin(), distances.end(), 0.0);
-    //    double avg = sum / distances.size();
-    //} else {
-    //    // Maybe we can handle this with proposed nodes;
-    //    LOG(WARNING) << "[SCENIC] You may be cooked here captain";
-    //}
+    // add the new nodes to the graph-
+    std::map<uchar, uint64_t> uid_map;
+    for (const auto& [key, vals] : adj.adjacency) {
+        if (centers.find(key) != centers.end()) {
+            uint64_t uid = UIDGenerator::getNextUID();
+            uid_map[key] = uid;
+            cv::Point pixel_coord = centers[key];
+            size_t cls_label = labels[key];
+            std::shared_ptr<Node> node = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
+            localizeNode(node, input.odom.getPose<Eigen::Isometry3d>()); 
+            scene_graph_->addNode(node);
+        }
+    }
 
+    // add existing node ids to the voronoi uid map
+    for(const auto& [key, vals] : adj.adjacency) {
+        uid_map[key] = pixel_id_map[adj.centroids[key]];
+    }
+
+    // add the edges
+    for (const auto& [key, vals] : adj.adjacency) {
+        for (const uchar& v : vals) {
+            if (uid_map.find(key) != uid_map.end() && uid_map.find(v) != uid_map.end()) {
+                uint64_t parent_id = uid_map[key];
+                uint64_t child_id = uid_map[v];
+
+                std::shared_ptr<Node> parent_node = scene_graph_->getNode(parent_id);
+                std::shared_ptr<Node> child_node = scene_graph_->getNode(child_id);
+
+                scene_graph_->addEdge(parent_node, child_node);
+            }
+        }
+    }
 }
 
 void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph)
@@ -171,9 +254,10 @@ void StitchingProcessor::processBuffer()
                 int c = coords.cols;
                 tbb::parallel_reduce(tbb::blocked_range2d<int>(0, r, 0, c), localize_image);
 
-                localizeNodes(graph, pose);
-                checkRegionNodes(graph);
-                checkObjectNodes(graph);
+                regionRegistrationViaBackProjection(coords, *raw_input); 
+                //localizeNodes(graph, pose);
+                //checkRegionNodes(graph);
+                //checkObjectNodes(graph);
                 scene_graph_->setProcessID(graph->getProcessID());
             if (scene_graph_) outputCallback(scene_graph_);
             }

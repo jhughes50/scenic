@@ -89,10 +89,12 @@ AdjacencyOutput KMeans::connectRegions(const std::vector<cv::Point>& points, con
 KMeansOutput KMeans::nFixedLloyds(const cv::Mat& mask, const std::vector<cv::Point2f>& fixed_centroids, int num_new_centroids, int max_iterations = 100, double tolerance = 1e-4) 
 {
     std::vector<cv::Point2f> points;
+    std::vector<cv::Point> ipoints;
     for (int y = 0; y < mask.rows; y++) {
         for (int x = 0; x < mask.cols; x++) {
             if (mask.at<uchar>(y, x) == 1) {
                 points.push_back(cv::Point2f(x, y));
+                ipoints.push_back(cv::Point(x, y));
             }
         }
     }
@@ -178,10 +180,17 @@ KMeansOutput KMeans::nFixedLloyds(const cv::Mat& mask, const std::vector<cv::Poi
 
     std::vector<cv::Point> centers;
     for (cv::Point2f p : centroids) {
-        centers.push_back(cv::Point(p);
+        centers.push_back(cv::Point(p));
     }
-    
-    return {centers, labels, inertia};
+   
+    cv::Mat voronoi = cv::Mat::zeros(mask.size(), CV_8U);
+    for (int i = 0; i < points.size(); i++) {
+        int cluster = labels[i] + 1;
+        cv::Point pt(points[i]);
+        voronoi.at<uchar>(pt) = cluster;
+    }
+
+    return {centers, voronoi, ipoints};
 }
 
 int KMeans::getNumClusters(const cv::Mat& mask, int alt)

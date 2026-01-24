@@ -92,9 +92,12 @@ void Graph::addEdge(std::shared_ptr<Node> n1, std::shared_ptr<Node> n2)
         nodes_[nid] = n2; 
     }
 
-    std::shared_ptr<Edge> edge = std::make_shared<Edge>(n1, n2);
     std::pair<uint64_t, uint64_t> idp(n1->getNodeID(), n2->getNodeID());
-    edges_[idp] = edge;
+    // ensure the edge doesnt already exist
+    if (edges_.find(idp) == edges_.end()) {
+        std::shared_ptr<Edge> edge = std::make_shared<Edge>(n1, n2);
+        edges_[idp] = edge;
+    }
 }
 
 void Graph::initEdges()
@@ -263,7 +266,7 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmea
     KMeansOutput output;
     AdjacencyOutput graph;
     try {
-        int k = kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
+        int k = 8; //kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
         output = kmeans.cluster(region_mask, k); 
         graph = kmeans.connectRegions(output.points, output.voronoi, k);
     } catch (const cv::Exception& e) {

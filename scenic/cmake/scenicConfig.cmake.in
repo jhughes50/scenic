@@ -11,6 +11,7 @@ find_dependency(lgs REQUIRED)
 find_dependency(Ceres REQUIRED)
 find_dependency(Eigen3 REQUIRED)
 find_dependency(glog REQUIRED)
+find_dependency(TBB REQUIRED)
 find_dependency(GTSAM REQUIRED)
 find_dependency(GTSAM_UNSTABLE REQUIRED)
 
