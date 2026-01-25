@@ -178,11 +178,12 @@ KMeansOutput KMeans::nFixedLloyds(const cv::Mat& mask, const std::vector<cv::Poi
         inertia += dist * dist;
     }
 
-    std::vector<cv::Point> centers;
-    for (cv::Point2f p : centroids) {
-        centers.push_back(cv::Point(p));
+    std::vector<cv::Point> new_centers;
+    for(size_t i = fixed_centroids.size(); i < centroids.size(); i++) {
+        cv::Point p(centroids[i]);
+        new_centers.push_back(p);
     }
-   
+
     cv::Mat voronoi = cv::Mat::zeros(mask.size(), CV_8U);
     for (int i = 0; i < points.size(); i++) {
         int cluster = labels[i] + 1;
@@ -190,7 +191,7 @@ KMeansOutput KMeans::nFixedLloyds(const cv::Mat& mask, const std::vector<cv::Poi
         voronoi.at<uchar>(pt) = cluster;
     }
 
-    return {centers, voronoi, ipoints};
+    return {new_centers, voronoi, ipoints};
 }
 
 int KMeans::getNumClusters(const cv::Mat& mask, int alt)

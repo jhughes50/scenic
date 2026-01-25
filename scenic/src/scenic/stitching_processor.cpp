@@ -6,6 +6,7 @@
 */
 
 #include "scenic/core/stitching_processor.hpp"
+#include <functional>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
@@ -121,7 +122,8 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
     cv::minMaxLoc(channels[1], &min_northing, &max_northing);
     // back project existing nodes into the image
     std::vector<cv::Point2f> back_proj_pixels;
-    std::map<cv::Point, uint64_t, PointCompare> pixel_id_map;
+    std::vector<cv::Point> back_proj_ipixels;
+    std::unordered_map<uint64_t, cv::Point> pixel_id_map;
     for (const std::shared_ptr<Node> existing : scene_graph_->getRegionNodes()) {
         UTMPoint utm = existing->getUtmCoordinate();
         if (utm.easting >= min_easting && utm.easting <= max_easting && utm.northing >= min_northing && utm.northing <= max_northing) {
@@ -131,7 +133,9 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
             cv::Point2f pixel(static_cast<float>(c.first), static_cast<float>(c.second));
             if (c.first == -1 || c.second == -1) continue;
             back_proj_pixels.push_back(pixel);
-            pixel_id_map[ipixel] = existing->getNodeID();
+            pixel_id_map[existing->getNodeID()] = ipixel;
+            back_proj_ipixels.push_back(ipixel);
+            LOG(INFO) << "[DEBUG] Backprojected Node: " << existing->getNodeID();
         }
     }
    
@@ -147,15 +151,16 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
     // if there are no regions detected 
     if (region_count == 0) return;
     int k = 8;
-    int new_k = std::max(0, k - static_cast<int>(back_proj_pixels.size())); // if this is 0 we're not adding any new nodes... we can exit
+    int new_k = std::max(0, k - static_cast<int>(back_proj_pixels.size())); 
+    // if this is 0 we're not adding any new nodes... we can exit
     if (new_k == 0) return;
+    
     KMeansOutput output = kmeans_.nFixedLloyds(region_mask, back_proj_pixels, new_k, 100, 1e-4);
-    AdjacencyOutput adj = kmeans_.connectRegions(output.points, output.voronoi, k);
+    AdjacencyOutput adj = kmeans_.connectRegions(output.points, output.voronoi, k); 
 
     std::map<uchar, cv::Point> centers;
     std::unordered_map<uchar, size_t> labels;
-    for (int i = back_proj_pixels.size(); i < output.centroids.size(); i++) {
-        cv::Point p = output.centroids[i];
+    for (const cv::Point& p : output.centroids) {
         uchar region_id = output.voronoi.at<uchar>(p);
         centers[region_id] = p;
         for (size_t j = 0; j < input_size; ++j) { 
@@ -180,9 +185,11 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
         }
     }
 
-    // add existing node ids to the voronoi uid map
-    for(const auto& [key, vals] : adj.adjacency) {
-        uid_map[key] = pixel_id_map[adj.centroids[key]];
+    // add existing nodes to centers and uid map
+    for (const auto& [nid, p] : pixel_id_map) {
+        uchar region_id = output.voronoi.at<uchar>(p);
+        centers[region_id] = p;
+        uid_map[region_id] = nid;
     }
 
     // add the edges
@@ -194,7 +201,7 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
 
                 std::shared_ptr<Node> parent_node = scene_graph_->getNode(parent_id);
                 std::shared_ptr<Node> child_node = scene_graph_->getNode(child_id);
-
+                LOG(INFO) << "[DEBUG] Adding Edge Between " << parent_id << "  " << child_id;
                 scene_graph_->addEdge(parent_node, child_node);
             }
         }
