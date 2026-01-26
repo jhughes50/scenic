@@ -245,10 +245,8 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, c
             }
             if (closest_region) {
                 if (!object->isConnected()) {
-                    LOG(INFO) << "[DEBUG] Adding Object Edge"; 
                     scene_graph_->addEdge(closest_region, object);
                 } else { 
-                    LOG(INFO) << "[DEBUG] Updating Object Edge";
                     scene_graph_->updateObjectEdge(closest_region, object);
                 }
             }

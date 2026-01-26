@@ -168,6 +168,7 @@ void Graph::updateObjectEdge(std::shared_ptr<Node> region, std::shared_ptr<Node>
     for (const auto& [eids, edge] : edges_) {
         if (eids.first == object->getNodeID() || eids.second == object->getNodeID()) {
             pruneEdge(edge);
+            break;
         }
     }
     // add connection to region as new edge
