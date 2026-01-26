@@ -162,6 +162,18 @@ void Graph::pruneEdge(std::shared_ptr<Edge> edge)
     pair.second->removeConnectedNode(pair.first);
 }
 
+void Graph::updateObjectEdge(std::shared_ptr<Node> region, std::shared_ptr<Node> object)
+{
+    // prune any existing edge connected to the object node 
+    for (const auto& [eids, edge] : edges_) {
+        if (eids.first == object->getNodeID() || eids.second == object->getNodeID()) {
+            pruneEdge(edge);
+        }
+    }
+    // add connection to region as new edge
+    addEdge(region, object);
+}
+
 cv::Mat Graph::DrawGraph(Graph& graph, const cv::Mat& image)
 {
     cv::Mat display = image.clone();

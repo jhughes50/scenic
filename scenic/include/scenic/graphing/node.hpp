@@ -35,6 +35,7 @@ class Node
         GraphLevel getNodeLevel() const;
         UTMPoint getUtmCoordinate() const;
         LatLonPoint getLatLonCoordinate() const;
+        bool isConnected() const;
 
         void setUtmCoordinate(double easting, double northing);
         void setLatLonCoordinate(double lat, double lon);

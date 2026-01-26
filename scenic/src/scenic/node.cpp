@@ -87,3 +87,12 @@ void Node::removeConnectedNode(std::shared_ptr<Node> node)
         connections_.erase(itn);
     }
 }
+
+bool Node::isConnected() const
+{
+    if (connection_ids_.size() > 0) {
+        return true;
+    } else {
+        return false;
+    }
+}

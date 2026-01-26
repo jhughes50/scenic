@@ -47,7 +47,7 @@ class StitchingProcessor : public ThreadedProcessor<GraphWithPose>
         void localizeNodes(std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose);
         void localizeNode(std::shared_ptr<Node>& node, const Eigen::Isometry3d& pose);
         void checkRegionNodes(const std::shared_ptr<Graph>& graph);
-        void checkObjectNodes(const std::shared_ptr<Graph>& graph);
+        void checkObjectNodes(const std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose);
         void regionRegistrationViaBackProjection(const cv::Mat& coords, const GraphWithPose& gi);
 
 

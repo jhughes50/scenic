@@ -135,7 +135,6 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
             back_proj_pixels.push_back(pixel);
             pixel_id_map[existing->getNodeID()] = ipixel;
             back_proj_ipixels.push_back(ipixel);
-            LOG(INFO) << "[DEBUG] Backprojected Node: " << existing->getNodeID();
         }
     }
    
@@ -171,7 +170,7 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
         }
     }
 
-    // add the new nodes to the graph-
+    // add the new nodes to the graph
     std::map<uchar, uint64_t> uid_map;
     for (const auto& [key, vals] : adj.adjacency) {
         if (centers.find(key) != centers.end()) {
@@ -180,7 +179,8 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
             cv::Point pixel_coord = centers[key];
             size_t cls_label = labels[key];
             std::shared_ptr<Node> node = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
-            localizeNode(node, input.odom.getPose<Eigen::Isometry3d>()); 
+            localizeNode(node, input.odom.getPose<Eigen::Isometry3d>());
+            
             scene_graph_->addNode(node);
         }
     }
@@ -201,32 +201,59 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
 
                 std::shared_ptr<Node> parent_node = scene_graph_->getNode(parent_id);
                 std::shared_ptr<Node> child_node = scene_graph_->getNode(child_id);
-                LOG(INFO) << "[DEBUG] Adding Edge Between " << parent_id << "  " << child_id;
                 scene_graph_->addEdge(parent_node, child_node);
             }
         }
     }
 }
 
-void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph)
+void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose)
 {
-    //for (const std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
-    //    double closest_dist = std::numeric_limits<double>::max();
-    //    std::shared_ptr<Node> closest_node;
-    //    for (const std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
-    //        // if distance is greater than n meters add the object node
-    //        // TODO make this a parameter
-    //        double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
-    //        if (distance < closest_dist) {
-    //            closest_dist = distance;
-    //            closest_node = proposed;
-    //        }
-    //    }
-    //    if (closest_dist > 10.0 && !scene_graph_->contains(closest_node->getNodeID())) {
-    //        LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << closest_node->getNodeID();
-    //        scene_graph_->addNode(closest_node);
-    //    }
-    //}
+    if (!graph || !scene_graph_) return;
+    for (const std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
+        double closest_dist = std::numeric_limits<double>::max();
+        std::shared_ptr<Node> closest_node;
+        for (std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
+            localizeNode(proposed, pose);
+            // if distance is greater than n meters add the object node
+            // TODO make this a parameter
+            double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
+            if (distance < closest_dist) {
+                closest_dist = distance;
+                closest_node = proposed;
+            }
+        }
+        if (closest_node) {
+            if (closest_dist > 10.0 && !scene_graph_->contains(closest_node->getNodeID())) {
+                LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << closest_node->getNodeID();
+                scene_graph_->addNode(closest_node);
+            }
+        }
+    }
+
+    // object edge analysis
+    for (std::shared_ptr<Node> object : scene_graph_->getObjectNodes()) {
+        double closest_dist = std::numeric_limits<double>::max();
+        std::shared_ptr<Node> closest_region;
+        if (object) {
+            for (std::shared_ptr<Node> region : scene_graph_->getRegionNodes()) {
+                double dist = calculateDistance(object->getUtmCoordinate(), region->getUtmCoordinate());
+                if (dist < closest_dist) {
+                    closest_dist = dist;
+                    closest_region = region;
+                }
+            }
+            if (closest_region) {
+                if (!object->isConnected()) {
+                    LOG(INFO) << "[DEBUG] Adding Object Edge"; 
+                    scene_graph_->addEdge(closest_region, object);
+                } else { 
+                    LOG(INFO) << "[DEBUG] Updating Object Edge";
+                    scene_graph_->updateObjectEdge(closest_region, object);
+                }
+            }
+        }
+    }
 }
 
 double StitchingProcessor::calculateDistance(const UTMPoint& p1, const UTMPoint& p2)
@@ -261,10 +288,8 @@ void StitchingProcessor::processBuffer()
                 int c = coords.cols;
                 tbb::parallel_reduce(tbb::blocked_range2d<int>(0, r, 0, c), localize_image);
 
-                regionRegistrationViaBackProjection(coords, *raw_input); 
-                //localizeNodes(graph, pose);
-                //checkRegionNodes(graph);
-                //checkObjectNodes(graph);
+                regionRegistrationViaBackProjection(coords, *raw_input);  
+                checkObjectNodes(graph, pose);
                 scene_graph_->setProcessID(graph->getProcessID());
             if (scene_graph_) outputCallback(scene_graph_);
             }
