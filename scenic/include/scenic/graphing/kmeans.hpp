@@ -37,6 +37,7 @@ class KMeans
 
         KMeansOutput cluster(const cv::Mat mask, int k);
         AdjacencyOutput connectRegions(const std::vector<cv::Point>& points, const cv::Mat& labels, int k);
+        KMeansOutput nFixedLloyds(const cv::Mat& mask, const std::vector<cv::Point2f>& fixed_centroids, int num_new_centroids, int max_iterations, double tolerance);
         int getNumClusters(const cv::Mat& mask, int alt);
 
     private:

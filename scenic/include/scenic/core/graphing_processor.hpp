@@ -11,7 +11,7 @@
 #include "scenic/graphing/traversability.hpp"
 #include "scenic/core/threaded_processor.hpp"
 #include "scenic/core/processor_inputs.hpp"
-
+#include "scenic/core/stitching_inputs.hpp"
 
 namespace Scenic
 {
@@ -22,11 +22,11 @@ class GraphingProcessor : public ThreadedProcessor<GraphingInput>
         GraphingProcessor() = default;
         GraphingProcessor(size_t capacity, const std::string& rect_path);
 
-        void setCallback(std::function<void(std::shared_ptr<Graph>)> callback);
+        void setCallback(std::function<void(std::shared_ptr<GraphWithPose>)> callback);
 
     private:
         void processBuffer() override;
-        std::function<void(std::shared_ptr<Graph>)> outputCallback;
+        std::function<void(std::shared_ptr<GraphWithPose>)> outputCallback;
 
         KMeans kmeans_;
 };

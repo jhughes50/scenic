@@ -55,14 +55,24 @@ class Graph
         
         std::map<uint64_t, std::shared_ptr<Node>> getNodes() const;
         std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Edge>> getEdges() const;
-        std::map<uint64_t, std::shared_ptr<Node>> getRegionNodes() const;
+        std::vector<std::shared_ptr<Node>> getRegionNodes() const;
+        std::vector<std::shared_ptr<Node>> getObjectNodes() const;
 
         void setEdgeScore(uint64_t nid1, uint64_t nid2, float score);
+        
+        void addNode(std::shared_ptr<Node> node);
+        void addEdge(std::shared_ptr<Node> n1, std::shared_ptr<Node> n2);    
 
         bool isEmpty() const;
         void setEmptyStatus(bool b); 
+        
         int getProcessID() const; 
         void setProcessID(int p);
+
+        bool contains(uint64_t nid) const;
+
+        void pruneEdge(std::shared_ptr<Edge> edge);
+        void updateObjectEdge(std::shared_ptr<Node> region, std::shared_ptr<Node> object);
 
     protected:
         void initEdges();

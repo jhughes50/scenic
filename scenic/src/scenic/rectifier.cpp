@@ -230,6 +230,12 @@ T Rectifier::getIntrinsics() const
 }
 
 template<typename T>
+T Rectifier::getDistortion() const
+{
+    return distortion_;
+}
+
+template<typename T>
 T Rectifier::getOutputIntrinsics() const
 {
     if constexpr (std::is_same_v<T, Eigen::Matrix3d>)
@@ -281,6 +287,8 @@ template size_t Rectifier::getWidth<size_t>() const;
 
 template cv::Mat Rectifier::getIntrinsics<cv::Mat>() const;
 template Eigen::Matrix3d Rectifier::getIntrinsics<Eigen::Matrix3d>() const;
+
+template cv::Mat Rectifier::getDistortion<cv::Mat>() const;
 
 template cv::Mat Rectifier::getOutputIntrinsics<cv::Mat>() const;
 template Eigen::Matrix3d Rectifier::getOutputIntrinsics<Eigen::Matrix3d>() const;

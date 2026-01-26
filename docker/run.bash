@@ -8,8 +8,6 @@ docker run -it --rm \
     -v "/dev:/dev" \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v "/home/`whoami`/Data/glider:/home/`whoami`/data" \
-    -v "`pwd`/../clipper/cpp:/home/`whoami`/clipper" \
-    -v "`pwd`/../lightgluestick:/home/`whoami`/lightgluestick" \
     -v "`pwd`/../scenic:/home/`whoami`/scenic" \
     -v "`pwd`/../../scenic-ros/scenic-ros:/home/`whoami`/ws/src/scenic-ros" \
     -v "`pwd`/../../scenic-ros/scenic-msgs:/home/`whoami`/ws/src/scenic-msgs" \

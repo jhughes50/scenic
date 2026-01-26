@@ -51,6 +51,8 @@ class Rectifier
         template<typename T>
         T getIntrinsics() const;
         template<typename T>
+        T getDistortion() const;
+        template<typename T>
         T getOutputIntrinsics() const;
 
         cv::Size getResolution() const;

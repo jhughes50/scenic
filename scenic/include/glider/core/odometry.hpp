@@ -92,6 +92,7 @@ class Odometry
         /*! @brief get the altitude from odometry
          *  @return altitude in meters in whatever frame is input */
         double getAltitude() const;
+        void setAltitude(double alt);
         /*! @brief get the heading from odometry
          *  @return heading in radians in ENU frame */
         double getHeading() const;

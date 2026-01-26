@@ -88,3 +88,16 @@ RUN python3 -m venv lgs
 ENV CUDA_HOME=/usr/local/cuda
 RUN sudo chown $USER:$USER .bashrc \
  && echo 'export PS1="\[$(tput setaf 2; tput bold)\]\u\[$(tput setaf 7)\]@\[$(tput setaf 3)\]\h\[$(tput setaf 7)\]:\[$(tput setaf 4)\]\W\[$(tput setaf 7)\]$ \[$(tput sgr0)\]"' >> ~/.bashrc
+
+COPY clipper/cpp ./clipper
+RUN cd clipper \
+ && sudo cmake -S . -B build \
+ && cd build && sudo cmake --build . \
+ && sudo cmake --install . --prefix /usr/local/
+
+COPY lightgluestick ./lightgluestick
+RUN cd lightgluestick \
+ && sudo cmake -S . -B build \
+ && cd build && sudo cmake --build . \
+ && sudo cmake --install . --prefix /usr/local
+ #&& pip3 install --break-system-packages -r requirements.txt

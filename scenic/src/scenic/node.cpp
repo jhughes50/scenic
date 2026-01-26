@@ -52,3 +52,47 @@ cv::Point Node::getPixelCoordinate() const
 {
     return pixel_;
 }
+
+void Node::setUtmCoordinate(double easting, double northing)
+{
+    utm_.easting = easting;
+    utm_.northing = northing;
+}
+
+UTMPoint Node::getUtmCoordinate() const
+{
+    return utm_;
+}
+
+void Node::setLatLonCoordinate(double lat, double lon)
+{
+    latlon_.latitude = lat;
+    latlon_.longitude = lon;
+}
+
+LatLonPoint Node::getLatLonCoordinate() const
+{
+    return latlon_;
+}
+
+void Node::removeConnectedNode(std::shared_ptr<Node> node)
+{
+    std::vector<uint64_t>::iterator itid = std::find(connection_ids_.begin(), connection_ids_.end(), node->getNodeID());
+    if (itid != connection_ids_.end()) {
+        connection_ids_.erase(itid);
+    }
+
+    std::vector<std::shared_ptr<Node>>::iterator itn = std::find(connections_.begin(), connections_.end(), node);
+    if (itn != connections_.end()) {
+        connections_.erase(itn);
+    }
+}
+
+bool Node::isConnected() const
+{
+    if (connection_ids_.size() > 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
