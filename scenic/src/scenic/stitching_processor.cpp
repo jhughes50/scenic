@@ -130,6 +130,8 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
             BufferSearchCoordinates searcher(coords, utm);
             std::pair<int, int> c = searcher.search(); 
             cv::Point ipixel(c.first, c.second);
+            // update pixel coordinate to be in the current image
+            existing->setPixelCoordinate(ipixel);
             cv::Point2f pixel(static_cast<float>(c.first), static_cast<float>(c.second));
             if (c.first == -1 || c.second == -1) continue;
             back_proj_pixels.push_back(pixel);
@@ -202,6 +204,9 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
                 std::shared_ptr<Node> parent_node = scene_graph_->getNode(parent_id);
                 std::shared_ptr<Node> child_node = scene_graph_->getNode(child_id);
                 scene_graph_->addEdge(parent_node, child_node);
+                std::shared_ptr<Edge> new_edge = scene_graph_->getEdge(parent_id, child_id);
+                bool result = Traversability::scoreEdge(new_edge, imagery);
+                if (!result) scene_graph_->pruneEdge(new_edge);
             }
         }
     }

@@ -39,6 +39,7 @@ class Node
 
         void setUtmCoordinate(double easting, double northing);
         void setLatLonCoordinate(double lat, double lon);
+        void setPixelCoordinate(cv::Point p);
 
         void removeConnectedNode(std::shared_ptr<Node> node);
 

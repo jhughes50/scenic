@@ -17,7 +17,7 @@
 #include "scenic/core/localization.hpp"
 #include "scenic/core/buffer_search_coords.hpp"
 #include "scenic/graphing/kmeans.hpp"
-
+#include "scenic/graphing/traversability.hpp"
 
 namespace Scenic
 {

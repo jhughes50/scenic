@@ -53,6 +53,11 @@ cv::Point Node::getPixelCoordinate() const
     return pixel_;
 }
 
+void Node::setPixelCoordinate(cv::Point p)
+{
+    pixel_ = p;
+}
+
 void Node::setUtmCoordinate(double easting, double northing)
 {
     utm_.easting = easting;
