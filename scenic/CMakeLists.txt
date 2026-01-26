@@ -88,6 +88,7 @@ add_library(${PROJECT_NAME} SHARED
     src/scenic/rectifier.cpp
     src/scenic/localization.cpp
     src/scenic/buffer_search_coords.cpp
+    src/scenic/traversability.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
