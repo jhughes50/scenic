@@ -132,6 +132,14 @@ struct TextMap
         return label_str;
     }
 
+    std::string operator[](const size_t id)
+    {
+        for (const Text t : text) {
+            if (t.uid == id) return t.label;
+        }
+        return {};
+    }
+
     std::vector<Text> text;
 };
 

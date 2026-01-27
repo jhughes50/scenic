@@ -45,12 +45,16 @@ class Scenic
         void trackingCallback(std::shared_ptr<TrackingOutput> to);
         void imageGraphCallback(std::shared_ptr<GraphWithPose> go);
         void graphCallback(std::shared_ptr<Graph> go);
+        void setOrigin(double easting, double northing);
 
         bool isInitialized() const;
         bool isNewGraph() const;
 
         cv::Mat getGraphImage() const;
         Glider::Odometry getVisualOdometry() const;
+
+        template <typename T>
+        T exportToJsonFormat(const Graph& graph);
 
     private:
         TextMap texts_;
@@ -72,6 +76,7 @@ class Scenic
         std::unordered_map<int, bool> pid_status_map_;
         FixedHashMap<int, std::shared_ptr<TrackingOutput>> pid_to_map_;
         FixedHashMap<int, std::shared_ptr<GraphingInput>> pid_gi_map_;
+        UTMPoint origin_;
 
         std::unique_ptr<Glider::Glider> glider_;
         Glider::OdometryWithCovariance current_state_;
