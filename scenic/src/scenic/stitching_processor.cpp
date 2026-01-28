@@ -13,9 +13,10 @@
 
 using namespace Scenic;
 
-StitchingProcessor::StitchingProcessor(size_t capacity, const std::string& rect_path) : ThreadedProcessor(capacity)
+StitchingProcessor::StitchingProcessor(size_t capacity, const std::string& rect_path, std::shared_ptr<Glider::Glider>& glider) : ThreadedProcessor(capacity)
 {
     rectifier_ = Rectifier::Load(rect_path, 4);
+    glider_ = glider;
 }
 
 void StitchingProcessor::setCallback(std::function<void(std::shared_ptr<Graph>)> callback)
@@ -212,27 +213,55 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
     }
 }
 
-void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose)
+void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, const Glider::Odometry& odom)
 {
+    Eigen::Isometry3d pose = odom.getPose<Eigen::Isometry3d>();
     if (!graph || !scene_graph_) return;
-    for (const std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
+
+    for (std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
         double closest_dist = std::numeric_limits<double>::max();
         std::shared_ptr<Node> closest_node;
-        for (std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
-            localizeNode(proposed, pose);
-            // if distance is greater than n meters add the object node
-            // TODO make this a parameter
+        localizeNode(proposed, pose);
+        for (std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
             double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
             if (distance < closest_dist) {
                 closest_dist = distance;
-                closest_node = proposed;
+                closest_node = existing;
             }
         }
-        if (closest_node) {
-            if (closest_dist > 10.0 && !scene_graph_->contains(closest_node->getNodeID())) {
-                LOG(INFO) << "[SCENIC] Adding Object Node To Scene Graph: " << closest_node->getNodeID();
-                scene_graph_->addNode(closest_node);
-            }
+
+        if (closest_dist < 10.0) {
+            // we've likely seen this object before
+            uint64_t nid = closest_node->getNodeID();
+            UTMPoint utm = proposed->getUtmCoordinate();
+            double fx = rectifier_.getFocalLength();
+            cv::Point px = proposed->getPixelCoordinate();
+            Eigen::Vector2d center(256, 192); // hard code for now TODO fix this later 
+            Eigen::Vector2d cam(px.x, px.y);
+            Eigen::Vector2d global(utm.easting, utm.northing);
+            int64_t stamp = odom.getTimestamp();
+            LOG(INFO) << "[DEBUG] Updating landmark with id : " << nid;
+            glider_->addLandmark(stamp, nid, odom, global, cam, center, fx);
+            Eigen::Vector3d filtered_pos = glider_->getLandmark(nid);
+            
+            closest_node->setUtmCoordinate(filtered_pos(0), filtered_pos(1));
+        } else if (closest_node) {
+            uint64_t nid = proposed->getNodeID();
+            UTMPoint utm = proposed->getUtmCoordinate();
+            double fx = rectifier_.getFocalLength();
+            cv::Point px = proposed->getPixelCoordinate();
+            Eigen::Vector2d center(256, 192);
+            Eigen::Vector2d cam(px.x, px.y);
+            Eigen::Vector2d global(utm.easting, utm.northing);
+            int64_t stamp = odom.getTimestamp();
+            LOG(INFO) << "[DEBUG] Adding landmark with id : " << nid;
+            
+            glider_->addLandmark(stamp, nid, odom, global, cam, center, fx);
+            Eigen::Vector3d filtered_pos = glider_->getLandmark(nid);
+            
+            proposed->setUtmCoordinate(filtered_pos(0), filtered_pos(1));
+            
+            scene_graph_->addNode(proposed);
         }
     }
 
@@ -292,7 +321,7 @@ void StitchingProcessor::processBuffer()
                 tbb::parallel_reduce(tbb::blocked_range2d<int>(0, r, 0, c), localize_image);
 
                 regionRegistrationViaBackProjection(coords, *raw_input);  
-                checkObjectNodes(graph, pose);
+                checkObjectNodes(graph, raw_input->odom);
                 scene_graph_->setProcessID(graph->getProcessID());
             if (scene_graph_) outputCallback(scene_graph_);
             }

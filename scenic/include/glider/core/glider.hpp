@@ -45,6 +45,8 @@ class Glider
         void addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
 
         void addOdometry(int64_t timestamp, const Eigen::Vector3d& pos, const Eigen::Quaterniond& rot);
+        void addLandmark(int64_t timestamp, uint64_t nid, const Odometry& pose,  Eigen::Vector2d utm, Eigen::Vector2d cam, Eigen::Vector2d img_center, double fx);
+        Eigen::Vector3d getLandmark(uint64_t nid);
 
         /*! @brief calls the factor manager to interpolate between GPS 
          *  measurements using the pim

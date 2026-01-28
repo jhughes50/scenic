@@ -12,6 +12,7 @@
 using namespace Glider;
 
 std::mutex Glider::FactorManager::mutex_;
+std::mutex Glider::FactorManager::graph_mutex_;
 
 FactorManager::FactorManager(const Parameters& params)
 {
@@ -33,7 +34,7 @@ FactorManager::FactorManager(const Parameters& params)
     // set noise model
     gps_noise_ = gtsam::noiseModel::Isotropic::Sigma(3, params.gps_noise);
     orient_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(params.roll_pitch_cov, params.roll_pitch_cov, params.heading_cov));
-    dgpsfm_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(M_PI/2, M_PI/2, params.dgpsfm_cov));
+    dgpsfm_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(10, 10, params.dgpsfm_cov));
     odom_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector6(params.odom_orientation_noise, 
                                                                      params.odom_orientation_noise, 
                                                                      params.odom_orientation_noise, 
@@ -227,6 +228,7 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, 
    
     // add the pim to the graph under a mutex
     std::unique_lock<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> glock(graph_mutex_);
     graph_.add(gtsam::CombinedImuFactor(X(key_index_-1), V(key_index_-1), X(key_index_), V(key_index_), B(key_index_-1), B(key_index_), *pim_));
     lock.unlock();
 
@@ -307,6 +309,62 @@ void FactorManager::addOdometryFactor(int64_t timestamp, const Eigen::Isometry3d
     }
 }
 
+void FactorManager::addLandmarkFactor(int64_t timestamp, size_t landmark_id, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov)
+{
+    if (!sys_initialized_) return;
+
+    gtsam::Key landmark_key = L(landmark_id);
+    gtsam::Point3 meas(utm);
+
+    auto noise = gtsam::noiseModel::Gaussian::Covariance(cov);
+
+    std::lock_guard<std::mutex> lock(graph_mutex_);
+    if (active_landmarks_.find(landmark_id) == active_landmarks_.end()) 
+    {
+        initials_.insert(landmark_key, meas);
+        active_landmarks_.insert(landmark_id);
+        if (params_.smooth) 
+        {
+            double time = nanosecIntToDouble(timestamp);
+            smoother_timestamps_[landmark_key] = time;
+        }
+    }
+
+    graph_.add(gtsam::PriorFactor<gtsam::Point3>(landmark_key, meas, noise));
+}
+
+Eigen::Vector3d FactorManager::getLandmarkPoint(size_t landmark_id) const
+{
+    gtsam::Key landmark_key = L(landmark_id);
+    if(active_landmarks_.find(landmark_id) == active_landmarks_.end()) 
+    {
+        LOG(ERROR) << "[GLIDER] Trying to optimize for landmark that does not exist: " << landmark_id;
+        return Eigen::Vector3d::Zero();
+    }
+    
+    std::lock_guard<std::mutex> lock(graph_mutex_);
+    if (optimized_landmarks_.find(landmark_id) != optimized_landmarks_.end())
+    {
+        if (params_.smooth)
+        {
+            gtsam::Point3 point = smoother_.calculateEstimate<gtsam::Point3>(landmark_key);
+            return Eigen::Vector3d(point.x(), point.y(), point.z());
+        }
+        else
+        {
+            gtsam::Point3 point = isam_.calculateEstimate<gtsam::Point3>(landmark_key);
+            return Eigen::Vector3d(point.x(), point.y(), point.z());
+        }
+    }
+    
+    if (initials_.exists(landmark_key))
+    {
+        gtsam::Point3 point = initials_.at<gtsam::Point3>(landmark_key);
+        return Eigen::Vector3d(point.x(), point.y(), point.z());
+    }
+    return Eigen::Vector3d(0, 0, 0);
+}
+
 Odometry FactorManager::predict(int64_t timestamp)
 {
     // TODO update this.
@@ -325,6 +383,7 @@ Odometry FactorManager::predict(int64_t timestamp)
 
 gtsam::Values FactorManager::optimize() 
 {
+    std::unique_lock<std::mutex> lock(graph_mutex_);
     isam_.update(graph_, initials_);
     gtsam::Values result;
     // call the specified optimizer
@@ -337,6 +396,7 @@ gtsam::Values FactorManager::optimize()
     {
         result = isam_.calculateEstimate();
     }
+    lock.unlock();
     optimized_count_++;
     // if weve optimized the specified number of times, initialize the system
     if (optimized_count_ == params_.initial_num_measurements)
@@ -355,6 +415,9 @@ OdometryWithCovariance FactorManager::runner(int64_t timestamp)
     if (!imu_initialized_ || !gps_initialized_) return OdometryWithCovariance::Uninitialized();
 
     gtsam::Values result = optimize();
+    for (size_t id : active_landmarks_) {
+        optimized_landmarks_.insert(id);
+    }
 
     // get the covariance from isam or the smoother
     gtsam::Matrix pose_cov, vel_cov;

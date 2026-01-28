@@ -378,7 +378,7 @@ ObjectGraph ObjectGraph::ObjectAnalysis(const GraphingInput& input)
 
 
 
-void ObjectGraph::setNodes(const std::vector<cv::Point>& centroids, const int& cls_label)
+void ObjectGraph::setNodes(const std::vector<cv::Point>& centroids, const size_t& cls_label)
 {
     setEmptyStatus(false);
     for (const cv::Point& c : centroids) {

@@ -101,6 +101,6 @@ class ObjectGraph : public Graph
         
         static ObjectGraph ObjectAnalysis(const GraphingInput& input);
         
-        void setNodes(const std::vector<cv::Point>& centroids, const int& cls_label);   
+        void setNodes(const std::vector<cv::Point>& centroids, const size_t& cls_label);   
 };
 }

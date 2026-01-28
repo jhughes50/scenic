@@ -278,6 +278,10 @@ double Rectifier::getVerticalFov() const
     return vfov_;
 }
 
+double Rectifier::getFocalLength() const
+{
+    return intrinsics_.at<double>(0,0);
+}
 
 template int Rectifier::getHeight<int>() const;
 template size_t Rectifier::getHeight<size_t>() const;
