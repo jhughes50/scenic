@@ -279,7 +279,7 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmea
     KMeansOutput output;
     AdjacencyOutput graph;
     try {
-        int k = 8; //kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
+        int k = 5; //kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
         output = kmeans.cluster(region_mask, k); 
         graph = kmeans.connectRegions(output.points, output.voronoi, k);
     } catch (const cv::Exception& e) {

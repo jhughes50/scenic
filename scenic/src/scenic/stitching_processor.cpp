@@ -152,7 +152,7 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
     }
     // if there are no regions detected 
     if (region_count == 0) return;
-    int k = 8;
+    int k = 5;
     int new_k = std::max(0, k - static_cast<int>(back_proj_pixels.size())); 
     // if this is 0 we're not adding any new nodes... we can exit
     if (new_k == 0) return;
@@ -240,7 +240,6 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, c
             Eigen::Vector2d cam(px.x, px.y);
             Eigen::Vector2d global(utm.easting, utm.northing);
             int64_t stamp = odom.getTimestamp();
-            LOG(INFO) << "[DEBUG] Updating landmark with id : " << nid;
             glider_->addLandmark(stamp, nid, odom, global, cam, center, fx);
             Eigen::Vector3d filtered_pos = glider_->getLandmark(nid);
             
@@ -254,7 +253,6 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, c
             Eigen::Vector2d cam(px.x, px.y);
             Eigen::Vector2d global(utm.easting, utm.northing);
             int64_t stamp = odom.getTimestamp();
-            LOG(INFO) << "[DEBUG] Adding landmark with id : " << nid;
             
             glider_->addLandmark(stamp, nid, odom, global, cam, center, fx);
             Eigen::Vector3d filtered_pos = glider_->getLandmark(nid);

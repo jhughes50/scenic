@@ -296,9 +296,13 @@ T Scenic::exportToJsonFormat(const Graph& graph)
         std::replace(child_label.begin(), child_label.end(), ' ', '_');
         child_label += "_"+std::to_string(nids.second);
         
-        Json::Value entry(Json::arrayValue);
-        entry.append(parent_label);
-        entry.append(child_label);
+        Json::Value names(Json::arrayValue);
+        names.append(parent_label);
+        names.append(child_label);
+
+        Json::Value entry;
+        entry["names"] = names;
+        entry["score"] = edge->getScore();
 
         if (nodes.first->getNodeLevel() == GraphLevel::REGION && nodes.second->getNodeLevel() == GraphLevel::REGION) {
             region_connections.append(entry); 
