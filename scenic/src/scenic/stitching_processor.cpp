@@ -152,7 +152,7 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
     }
     // if there are no regions detected 
     if (region_count == 0) return;
-    int k = 5;
+    int k = 20;
     int new_k = std::max(0, k - static_cast<int>(back_proj_pixels.size())); 
     // if this is 0 we're not adding any new nodes... we can exit
     if (new_k == 0) return;
@@ -230,7 +230,7 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, c
             }
         }
 
-        if (closest_dist < 10.0) {
+        if (closest_dist < 8.0) {
             // we've likely seen this object before
             uint64_t nid = closest_node->getNodeID();
             UTMPoint utm = proposed->getUtmCoordinate();

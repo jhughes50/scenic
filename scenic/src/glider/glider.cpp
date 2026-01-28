@@ -146,7 +146,7 @@ void Glider::addOdometry(int64_t timestamp, const Eigen::Vector3d& pos, const Ei
 void Glider::addLandmark(int64_t timestamp, uint64_t nid, const Odometry& pose, Eigen::Vector2d utm, Eigen::Vector2d cam, Eigen::Vector2d img_center, double fx)
 {
     double altitude = pose.getAltitude();
-    double pixel_sigma = 5.0;  
+    double pixel_sigma = 10.0;  
     double gsd = altitude / fx;
 
     double base_sigma = pixel_sigma * gsd;
@@ -156,7 +156,7 @@ void Glider::addLandmark(int64_t timestamp, uint64_t nid, const Odometry& pose, 
 
     double angle_from_nadir = std::atan2(pixel_dist, fx);
     
-    double heading_sigma = 3.0 * M_PI / 180.0;
+    double heading_sigma = 5.0 * M_PI / 180.0;
     double lateral_from_heading = altitude * std::tan(angle_from_nadir) * std::sin(heading_sigma);
     
     double gsd_scale = 1.0 / std::cos(angle_from_nadir);
