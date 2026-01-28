@@ -35,11 +35,12 @@ class Scenic
         void setText(std::vector<Text> text);
         std::shared_ptr<Graph> getGraph();
 
-        void push(int64_t timestamp, const cv::Mat& img); // dep
+        void push(int64_t timestamp, const cv::Mat& img, Glider::Odometry& odom); // dep
 
         void addImage(double vo_ts, int64_t gt_ts, const cv::Mat& img, bool segment);
         Glider::Odometry addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
         Glider::OdometryWithCovariance addGPS(int64_t timestamp, Eigen::Vector3d& gps);
+        Glider::Odometry getStateEstimate(int64_t timestamp);
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
         void trackingCallback(std::shared_ptr<TrackingOutput> to);
@@ -78,7 +79,7 @@ class Scenic
         FixedHashMap<int, std::shared_ptr<GraphingInput>> pid_gi_map_;
         UTMPoint origin_;
 
-        std::unique_ptr<Glider::Glider> glider_;
+        std::shared_ptr<Glider::Glider> glider_;
         Glider::OdometryWithCovariance current_state_;
         Glider::Odometry visual_odom_;
         mutable std::mutex img_proc_mutex_;

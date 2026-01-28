@@ -143,6 +143,43 @@ void Glider::addOdometry(int64_t timestamp, const Eigen::Vector3d& pos, const Ei
     prev_pose_ = pose;
 }
 
+void Glider::addLandmark(int64_t timestamp, uint64_t nid, const Odometry& pose, Eigen::Vector2d utm, Eigen::Vector2d cam, Eigen::Vector2d img_center, double fx)
+{
+    double altitude = pose.getAltitude();
+    double pixel_sigma = 10.0;  
+    double gsd = altitude / fx;
+
+    double base_sigma = pixel_sigma * gsd;
+    
+    Eigen::Vector2d offset = cam - img_center;
+    double pixel_dist = offset.norm();
+
+    double angle_from_nadir = std::atan2(pixel_dist, fx);
+    
+    double heading_sigma = 5.0 * M_PI / 180.0;
+    double lateral_from_heading = altitude * std::tan(angle_from_nadir) * std::sin(heading_sigma);
+    
+    double gsd_scale = 1.0 / std::cos(angle_from_nadir);
+    
+    double total_sigma = base_sigma * gsd_scale + lateral_from_heading;
+    
+    Eigen::Matrix3d cov = Eigen::Matrix3d::Identity();
+    cov(0, 0) = total_sigma * total_sigma;
+    cov(1, 1) = total_sigma * total_sigma;
+    cov(2, 2) = 1.0;  
+
+    size_t landmark_id = static_cast<size_t>(nid);
+    Eigen::Vector3d meas(utm(0), utm(1), 0.0);
+
+    factor_manager_.addLandmarkFactor(timestamp, landmark_id, meas, cov);
+}
+
+Eigen::Vector3d Glider::getLandmark(uint64_t nid)
+{
+    size_t lid = static_cast<size_t>(nid);
+    return factor_manager_.getLandmarkPoint(lid);
+}
+
 Odometry Glider::interpolate(int64_t timestamp)
 {
     try

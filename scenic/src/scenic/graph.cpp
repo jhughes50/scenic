@@ -279,7 +279,7 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmea
     KMeansOutput output;
     AdjacencyOutput graph;
     try {
-        int k = 8; //kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
+        int k = 20; //kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
         output = kmeans.cluster(region_mask, k); 
         graph = kmeans.connectRegions(output.points, output.voronoi, k);
     } catch (const cv::Exception& e) {
@@ -378,7 +378,7 @@ ObjectGraph ObjectGraph::ObjectAnalysis(const GraphingInput& input)
 
 
 
-void ObjectGraph::setNodes(const std::vector<cv::Point>& centroids, const int& cls_label)
+void ObjectGraph::setNodes(const std::vector<cv::Point>& centroids, const size_t& cls_label)
 {
     setEmptyStatus(false);
     for (const cv::Point& c : centroids) {

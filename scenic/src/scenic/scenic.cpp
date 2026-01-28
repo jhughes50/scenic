@@ -22,7 +22,7 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
     std::string params_path = "/usr/local/share/scenic/config/";
     current_state_ = Glider::OdometryWithCovariance::Uninitialized();
 
-    glider_ = std::make_unique<Glider::Glider>(params_path+"glider-params.yaml");
+    glider_ = std::make_shared<Glider::Glider>(params_path+"glider-params.yaml");
 
     seg_processor_ = std::make_unique<SegmentationProcessor>(capacity, params_path, model_path, config_path);
     seg_processor_->setCallback([this](std::shared_ptr<GraphingInput> so) { 
@@ -34,7 +34,7 @@ Scenic::Scenic(size_t capacity, const std::string& model_path, const std::string
         this->imageGraphCallback(go);
     });
 
-    stitching_processor_ = std::make_unique<StitchingProcessor>(capacity, params_path+"blackfly-5mm.yaml");
+    stitching_processor_ = std::make_unique<StitchingProcessor>(capacity, params_path+"blackfly-5mm.yaml", glider_);
     stitching_processor_->setCallback([this](std::shared_ptr<Graph> go) {
         this->graphCallback(go);
     });
@@ -86,14 +86,13 @@ std::shared_ptr<Graph> Scenic::getGraph()
     return graph_;
 }
 
-void Scenic::push(int64_t timestamp, const cv::Mat& img)
+void Scenic::push(int64_t timestamp, const cv::Mat& img, Glider::Odometry& odom)
 {
     // create a pointer to input
     int pid = seg_processor_->generateProcessID();
     LOG(INFO) << "[SCENIC] Starting PID: " << pid;
     if (texts_.text.size() > 0 && current_state_.isInitialized()) {
         pid_img_map_.insert(pid, img.clone());
-        Glider::Odometry odom = glider_->interpolate(timestamp);
         odom.setAltitude(35.0);
         SegmentationInput seg_model_input(pid, img, odom, texts_);
         seg_processor_->push(seg_model_input);
@@ -148,6 +147,14 @@ Glider::OdometryWithCovariance Scenic::addGPS(int64_t timestamp, Eigen::Vector3d
     return current_state_;
 }
 
+Glider::Odometry Scenic::getStateEstimate(int64_t timestamp)
+{
+    Glider::Odometry odom;
+    if (current_state_.isInitialized()) {
+        odom = glider_->interpolate(timestamp);
+    }
+    return odom;
+}
 
 void Scenic::trackingCallback(std::shared_ptr<TrackingOutput> to)
 {
@@ -256,6 +263,7 @@ T Scenic::exportToJsonFormat(const Graph& graph)
         Json::Value entry;
         // make the label
         std::string label = texts_[node->getClassLabel()];
+        std::replace(label.begin(), label.end(), ' ', '_');
         label += "_"+std::to_string(nid);
         entry["name"] = label;
 
@@ -285,11 +293,16 @@ T Scenic::exportToJsonFormat(const Graph& graph)
         parent_label += "_"+std::to_string(nids.first);
 
         std::string child_label = texts_[nodes.second->getClassLabel()];
+        std::replace(child_label.begin(), child_label.end(), ' ', '_');
         child_label += "_"+std::to_string(nids.second);
+        
+        Json::Value names(Json::arrayValue);
+        names.append(parent_label);
+        names.append(child_label);
 
-        Json::Value entry(Json::arrayValue);
-        entry.append(parent_label);
-        entry.append(child_label);
+        Json::Value entry;
+        entry["names"] = names;
+        entry["score"] = edge->getScore();
 
         if (nodes.first->getNodeLevel() == GraphLevel::REGION && nodes.second->getNodeLevel() == GraphLevel::REGION) {
             region_connections.append(entry); 

@@ -38,6 +38,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <set>
 #include <mutex>
 #include <cmath>
 #include <numeric>
@@ -47,6 +48,7 @@
 using gtsam::symbol_shorthand::B; // Bias
 using gtsam::symbol_shorthand::V; // Velocity
 using gtsam::symbol_shorthand::X; // Pose
+using gtsam::symbol_shorthand::L; // object landmarks
 
 namespace Glider 
 {
@@ -94,6 +96,7 @@ class FactorManager
         void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
 
         void addOdometryFactor(int64_t timestamp, const Eigen::Isometry3d& pose, const Eigen::Quaterniond& orient);
+        void addLandmarkFactor(int64_t timestamp, size_t landmark_id, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov);
 
         // getters and checkers
         /*! @brief gets the complete factor graph */
@@ -111,6 +114,8 @@ class FactorManager
         /*! @brief gets the matrix used for bias estimation 
          *  @return 6-by-bias_num_measurements matrix */
         Eigen::MatrixXd getBiasEstimate() const;
+
+        Eigen::Vector3d getLandmarkPoint(size_t landmark_id) const;
         /*! @brief gets the current pim object 
          *  @return the current pim object dereferenced */
         gtsam::PreintegratedCombinedMeasurements getPim() const;
@@ -141,7 +146,7 @@ class FactorManager
         // @brief a mutex to use accross function that access the pim 
         // as the pim could be accessd by multiple threads
         static std::mutex mutex_;
-
+        static std::mutex graph_mutex_;
         // parameters
         // @brief parameters for the isam2 optimizer  
         gtsam::ISAM2Params isam_params_;
@@ -212,6 +217,10 @@ class FactorManager
         bool imu_initialized_;
         // @param tracks if a gps measurement has been received
         bool gps_initialized_;
+
+        // landmark varaibles
+        std::set<size_t> active_landmarks_;
+        std::set<size_t> optimized_landmarks_;
 
         // Odometry Variables
         bool compose_odom_{false};

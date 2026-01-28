@@ -6,6 +6,7 @@
 */
 
 #include <Eigen/Dense>
+#include <glider/core/odometry.hpp>
 #include <opencv2/opencv.hpp>
 #include <stickyvo/types.hpp>
 
@@ -14,6 +15,7 @@ namespace Scenic
 struct ImageStamped
 {
     cv::Mat image;
+    Glider::Odometry odom;
     double stampd;
     int64_t stampi;
 };

@@ -7,6 +7,7 @@
 #include <glog/logging.h>
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
+#include <glider/core/glider.hpp>
 
 #include "scenic/graphing/graph.hpp"
 #include "scenic/core/threaded_processor.hpp"
@@ -34,7 +35,7 @@ class StitchingProcessor : public ThreadedProcessor<GraphWithPose>
 {
     public:
         StitchingProcessor() = default;
-        StitchingProcessor(size_t capacity, const std::string& rect_path);
+        StitchingProcessor(size_t capacity, const std::string& rect_path, std::shared_ptr<Glider::Glider>& glider);
 
         void setCallback(std::function<void(std::shared_ptr<Graph>)> callback);
 
@@ -47,10 +48,10 @@ class StitchingProcessor : public ThreadedProcessor<GraphWithPose>
         void localizeNodes(std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose);
         void localizeNode(std::shared_ptr<Node>& node, const Eigen::Isometry3d& pose);
         void checkRegionNodes(const std::shared_ptr<Graph>& graph);
-        void checkObjectNodes(const std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose);
+        void checkObjectNodes(const std::shared_ptr<Graph>& graph, const Glider::Odometry& pose);
         void regionRegistrationViaBackProjection(const cv::Mat& coords, const GraphWithPose& gi);
 
-
+        std::shared_ptr<Glider::Glider> glider_;
         std::shared_ptr<Graph> scene_graph_;
         Rectifier rectifier_;
         Transforms transforms_;
