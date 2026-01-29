@@ -3,7 +3,7 @@ imu:
     accelerometer: 0.00001
     gyroscope: 0.00001
     integration: 0.001
-    heading: 0.09 
+    heading: 10 
     roll_pitch: 0.001
     bias: 0.001
   frame: "enu"
