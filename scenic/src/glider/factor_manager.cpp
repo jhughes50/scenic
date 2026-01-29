@@ -443,7 +443,7 @@ OdometryWithCovariance FactorManager::runner(int64_t timestamp)
     if (params_.smooth)
     {
         pose_cov = smoother_.marginalCovariance(X(key_index_-1));
-        vel_cov = smoother_.marginalCovariance(X(key_index_-1));
+        vel_cov = smoother_.marginalCovariance(V(key_index_-1));
     }
     else
     {
