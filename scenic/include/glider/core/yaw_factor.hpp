@@ -33,7 +33,7 @@ class YawFactor : public gtsam::NoiseModelFactor1<gtsam::Pose3> {
                 Eigen::Vector3d dyaw_domega = dyaw_dr10 * dr10_domega + dyaw_dr00 * dr00_domega;
                 
                 // Negate the Jacobian
-                *H = (gtsam::Matrix(1, 6) << -dyaw_domega(0), -dyaw_domega(1), -dyaw_domega(2), 0.0, 0.0, 0.0).finished();
+                *H = (gtsam::Matrix(1, 6) << dyaw_domega(0), dyaw_domega(1), dyaw_domega(2), 0.0, 0.0, 0.0).finished();
             }
             
             double err = yaw - measured_yaw_;
