@@ -50,6 +50,7 @@ class StitchingProcessor : public ThreadedProcessor<GraphWithPose>
         void checkRegionNodes(const std::shared_ptr<Graph>& graph);
         void checkObjectNodes(const std::shared_ptr<Graph>& graph, const Glider::Odometry& pose);
         void regionRegistrationViaBackProjection(const cv::Mat& coords, const GraphWithPose& gi);
+        void addNodeByMax(const GraphWithPose& input);
 
         std::shared_ptr<Glider::Glider> glider_;
         std::shared_ptr<Graph> scene_graph_;

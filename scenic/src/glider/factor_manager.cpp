@@ -35,6 +35,7 @@ FactorManager::FactorManager(const Parameters& params)
     gps_noise_ = gtsam::noiseModel::Isotropic::Sigma(3, params.gps_noise);
     orient_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(params.roll_pitch_cov, params.roll_pitch_cov, params.heading_cov));
     dgpsfm_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(10, 10, params.dgpsfm_cov));
+    //dgpsfm_noise_ = gtsam::noiseModel::Isotropic::Sigma(1, params.dgpsfm_cov);
     odom_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector6(params.odom_orientation_noise, 
                                                                      params.odom_orientation_noise, 
                                                                      params.odom_orientation_noise, 
@@ -248,6 +249,15 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, 
 
     graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
     if (fuse) graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, dgpsfm_noise_);
+    gtsam::Rot3 imu_rot = gtsam::Rot3::Quaternion(orient_(0), orient_(1), orient_(2), orient_(3));
+    graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), imu_rot, orient_noise_);
+    //if (fuse) {
+    //    graph_.add(YawFactor(X(key_index_), heading, dgpsfm_noise_));
+    //}
+    // relative yaw rotation
+    //auto noise = gtsam::noiseModel::Isotropic::Sigma(1, 0.1);
+    //graph_.add(BetweenYawFactor(X(key_index_-1), X(key_index_), compose_yaw_, noise)); 
+    //compose_yaw_ = 0.0;
 
     // increment key index
     key_index_++;
@@ -261,6 +271,8 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
     {
         last_imu_time_ = nanosecIntToDouble(timestamp);
         initializeImu(accel, gyro, orient);
+        prev_yaw_= gtsam::Rot3::Quaternion(orient(0), orient(1), orient(2), orient(3)).yaw();
+        compose_yaw_ = 0.0;
         return;
     }
     // if the imu is initialzied we want to add measurements to the pim
@@ -271,6 +283,13 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
         LOG(WARNING) << "[GLIDER] Recieved IMU measurement out of order, ignoring";
         return;
     }
+
+    // between imu orientation 
+    double curr_yaw = gtsam::Rot3::Quaternion(orient(0), orient(1), orient(2), orient(3)).yaw();
+    double d_yaw = curr_yaw - prev_yaw_;
+    compose_yaw_ += d_yaw;
+
+    prev_yaw_ = curr_yaw;
     // both the runner and the add imu access the pim in different threads
     // so we need to lock it when we manipulate it
     std::lock_guard<std::mutex> lock(mutex_);
@@ -424,7 +443,7 @@ OdometryWithCovariance FactorManager::runner(int64_t timestamp)
     if (params_.smooth)
     {
         pose_cov = smoother_.marginalCovariance(X(key_index_-1));
-        vel_cov = smoother_.marginalCovariance(X(key_index_-1));
+        vel_cov = smoother_.marginalCovariance(V(key_index_-1));
     }
     else
     {

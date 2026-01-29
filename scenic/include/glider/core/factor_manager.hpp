@@ -31,6 +31,8 @@
 
 #include "odometry_with_covariance.hpp"
 #include "odometry.hpp"
+#include "yaw_factor.hpp"
+#include "between_yaw_factor.hpp"
 #include "glider/utils/parameters.hpp"
 #include "glider/utils/time.hpp"
 
@@ -221,6 +223,10 @@ class FactorManager
         // landmark varaibles
         std::set<size_t> active_landmarks_;
         std::set<size_t> optimized_landmarks_;
+
+        // composed imu orient 
+        double prev_yaw_;
+        double compose_yaw_;
 
         // Odometry Variables
         bool compose_odom_{false};

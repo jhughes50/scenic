@@ -89,6 +89,7 @@ add_library(${PROJECT_NAME} SHARED
     src/scenic/localization.cpp
     src/scenic/buffer_search_coords.cpp
     src/scenic/traversability.cpp
+    src/scenic/homography.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC

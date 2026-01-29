@@ -13,6 +13,7 @@
 #include <glider/core/odometry_with_covariance.hpp>
 #include <glider/core/glider.hpp>
 
+#include "scenic/core/homography.hpp"
 #include "scenic/core/segmentation_processor.hpp"
 #include "scenic/core/graphing_processor.hpp"
 #include "scenic/core/tracking_processor.hpp"
@@ -43,7 +44,7 @@ class Scenic
         Glider::Odometry getStateEstimate(int64_t timestamp);
 
         void segmentationCallback(std::shared_ptr<GraphingInput> so);
-        void trackingCallback(std::shared_ptr<TrackingOutput> to);
+        void trackingCallback(std::shared_ptr<homography::HomographyResult> to);
         void imageGraphCallback(std::shared_ptr<GraphWithPose> go);
         void graphCallback(std::shared_ptr<Graph> go);
         void setOrigin(double easting, double northing);
@@ -52,6 +53,7 @@ class Scenic
         bool isNewGraph() const;
 
         cv::Mat getGraphImage() const;
+        cv::Mat getMaskOverlay() const;    
         Glider::Odometry getVisualOdometry() const;
 
         template <typename T>
@@ -73,7 +75,8 @@ class Scenic
         int tracking_counter_{0};
         ImageStamped prev_image_stamped_;
 
-        FixedHashMap<int, cv::Mat> pid_img_map_;
+        FixedHashMap<int, std::pair<cv::Mat,cv::Mat>> pid_img_map_;
+        FixedHashMap<int, cv::Mat> pid_h_map_;
         std::unordered_map<int, bool> pid_status_map_;
         FixedHashMap<int, std::shared_ptr<TrackingOutput>> pid_to_map_;
         FixedHashMap<int, std::shared_ptr<GraphingInput>> pid_gi_map_;
