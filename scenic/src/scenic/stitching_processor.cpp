@@ -213,6 +213,36 @@ void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coor
     }
 }
 
+void StitchingProcessor::addNodeByMax(const GraphWithPose& imagery)
+{
+    GraphingInput input = imagery.analysis;
+
+    size_t input_size = input.getSize();
+    for (size_t i = 0; i < input_size; ++i) {
+        if (input.map[i].level == GraphLevel::REGION) {
+            double minVal, maxVal;
+            cv::Point minLoc, maxLoc;
+            cv::Mat logits = input.map[i].mask;
+            cv::minMaxLoc(logits, &minVal, &maxVal, &minLoc, &maxLoc);
+
+            KMeansOutput output = kmeans_.cluster(input.map[i].mask, 1);
+
+            uint64_t uid = UIDGenerator::getNextUID();
+            cv::Point zero(0,0);
+            if (maxLoc == zero) {
+                LOG(INFO) << "[DEBUG] Max Logit was at (0,0)";
+            } else {
+                if (cv::norm(maxLoc - cv::Point(256, 192)) < 100) {
+                    std::shared_ptr<Node> node = std::make_shared<Node>(uid, input.map[i].uid, GraphLevel::REGION, maxLoc);
+
+                    localizeNode(node, input.odom.getPose<Eigen::Isometry3d>());
+                    scene_graph_->addNode(node);
+                }
+            }
+        }
+    }
+}
+
 void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, const Glider::Odometry& odom)
 {
     Eigen::Isometry3d pose = odom.getPose<Eigen::Isometry3d>();
@@ -318,7 +348,8 @@ void StitchingProcessor::processBuffer()
                 int c = coords.cols;
                 tbb::parallel_reduce(tbb::blocked_range2d<int>(0, r, 0, c), localize_image);
 
-                regionRegistrationViaBackProjection(coords, *raw_input);  
+                //regionRegistrationViaBackProjection(coords, *raw_input);  
+                addNodeByMax(*raw_input);
                 checkObjectNodes(graph, raw_input->odom);
                 scene_graph_->setProcessID(graph->getProcessID());
             if (scene_graph_) outputCallback(scene_graph_);

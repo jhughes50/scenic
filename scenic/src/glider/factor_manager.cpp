@@ -14,8 +14,32 @@ using namespace Glider;
 std::mutex Glider::FactorManager::mutex_;
 std::mutex Glider::FactorManager::graph_mutex_;
 
+#include <gtsam/base/numericalDerivative.h>
+
+// Add this function
+void testYawFactor()
+{
+    gtsam::Pose3 test_pose(gtsam::Rot3::Ypr(0.5, 0.1, 0.05), gtsam::Point3(100, 200, 50));
+    auto noise = gtsam::noiseModel::Isotropic::Sigma(1, 0.1);
+    YawFactor factor(0, 0.5, noise);
+    
+    gtsam::Matrix H_analytical;
+    gtsam::Vector err = factor.evaluateError(test_pose, H_analytical);
+    
+    gtsam::Matrix H_numerical = gtsam::numericalDerivative11<gtsam::Vector, gtsam::Pose3>(
+        [&](const gtsam::Pose3& p) { return factor.evaluateError(p, boost::none); },
+        test_pose);
+    
+    LOG(INFO) << "YawFactor test:";
+    LOG(INFO) << "Error: " << err.transpose();
+    LOG(INFO) << "Analytical:\n" << H_analytical;
+    LOG(INFO) << "Numerical:\n" << H_numerical;
+    LOG(INFO) << "Difference norm: " << (H_analytical - H_numerical).norm();
+}
+
 FactorManager::FactorManager(const Parameters& params)
 {
+    testYawFactor();
     // set initialization status
     imu_initialized_ = false;
     gps_initialized_ = false;
@@ -34,7 +58,8 @@ FactorManager::FactorManager(const Parameters& params)
     // set noise model
     gps_noise_ = gtsam::noiseModel::Isotropic::Sigma(3, params.gps_noise);
     orient_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(params.roll_pitch_cov, params.roll_pitch_cov, params.heading_cov));
-    dgpsfm_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(10, 10, params.dgpsfm_cov));
+    //dgpsfm_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(10, 10, params.dgpsfm_cov));
+    dgpsfm_noise_ = gtsam::noiseModel::Isotropic::Sigma(1, params.dgpsfm_cov);
     odom_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector6(params.odom_orientation_noise, 
                                                                      params.odom_orientation_noise, 
                                                                      params.odom_orientation_noise, 
@@ -247,7 +272,9 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, 
     gtsam::Rot3 rot = gtsam::Rot3::Ypr(heading, 0.0, 0.0);
 
     graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
-    if (fuse) graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, dgpsfm_noise_);
+    //if (fuse) graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, dgpsfm_noise_);
+    if (fuse) graph_.add(YawFactor(X(key_index_), heading, dgpsfm_noise_));
+
 
     // increment key index
     key_index_++;

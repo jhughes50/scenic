@@ -31,6 +31,7 @@
 
 #include "odometry_with_covariance.hpp"
 #include "odometry.hpp"
+#include "yaw_factor.hpp"
 #include "glider/utils/parameters.hpp"
 #include "glider/utils/time.hpp"
 
