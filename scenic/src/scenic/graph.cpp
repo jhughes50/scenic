@@ -266,42 +266,60 @@ RegionGraph RegionGraph::RegionAnalysis(const GraphingInput& input, KMeans& kmea
     RegionGraph region_graph;
 
     int region_count = 0;
+    size_t cls_label;
     cv::Mat region_mask = cv::Mat::zeros(input.image.size(), CV_8UC1); 
     for (size_t i = 0; i < input_size; ++i) {
         if (input.map[i].level == GraphLevel::REGION) {
             cv::bitwise_or(region_mask, input.map[i].mask, region_mask);
+            cls_label = input.map[i].uid;
             region_count++;
         }
     }
     // if there are no regions detected 
     if (region_count == 0) return region_graph;
    
-    KMeansOutput output;
-    AdjacencyOutput graph;
-    try {
-        int k = 1; //kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
-        output = kmeans.cluster(region_mask, k); 
-        graph = kmeans.connectRegions(output.points, output.voronoi, k);
-    } catch (const cv::Exception& e) {
-        // there was no region detected
-        // so return and empty graph.
-        return region_graph;
-    }
+    //KMeansOutput output;
+    //AdjacencyOutput graph;
+    //try {
+    //    int k = 1; //kmeans.getNumClusters(region_mask, 35);// input.odom.getAltitude());
+    //    output = kmeans.cluster(region_mask, k); 
+    //    graph = kmeans.connectRegions(output.points, output.voronoi, k);
+    //} catch (const cv::Exception& e) {
+    //    // there was no region detected
+    //    // so return and empty graph.
+    //    return region_graph;
+    //}
 
-    std::map<uchar, cv::Point> centers;
-    std::unordered_map<uchar, size_t> labels;
-    for (const cv::Point p : output.centroids) {
-        uchar region_id = output.voronoi.at<uchar>(p);
-        centers[region_id] = p;
-        for (size_t i = 0; i < input_size; ++i) {
-            if (input.map[i].mask.at<uchar>(p) == 1) {
-                labels[region_id] = input.map[i].uid;
-                break;
-            }
-        }
-    }
+    //std::map<uchar, cv::Point> centers;
+    //std::unordered_map<uchar, size_t> labels;
+    //for (const cv::Point p : output.centroids) {
+    //    uchar region_id = output.voronoi.at<uchar>(p);
+    //    centers[region_id] = p;
+    //    
+    //    for (size_t i = 0; i < input_size; ++i) {
+    //        if (input.map[i].mask.at<uchar>(p) == 1) {
+    //            labels[region_id] = input.map[i].uid;
+    //            break;
+    //        }
+    //    }
+    //    uint64_t uid = UIDGenerator::getNextUID();
+    //    size_t cls_label = labels[region_id];
+    //    LOG(INFO) << "Adding Region Node";
+    //    std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, p);
+    //    region_graph.addNode(n);
+    //}
 
-    region_graph.setNodes(graph, centers, labels);
+    cv::Mat dist;
+    cv::distanceTransform(region_mask, dist, cv::DIST_L2, cv::DIST_MASK_PRECISE);
+
+    // Find the point with maximum distance
+    double maxVal;
+    cv::Point maxLoc;
+    cv::minMaxLoc(dist, nullptr, &maxVal, nullptr, &maxLoc);
+
+    uint64_t uid = UIDGenerator::getNextUID();
+    std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, maxLoc);
+    region_graph.addNode(n);
 
     return region_graph;
 }
@@ -316,6 +334,7 @@ void RegionGraph::setNodes(const AdjacencyOutput& adj, std::map<uchar, cv::Point
             uid_map[key] = uid;
             cv::Point pixel_coord = centroids[key];
             size_t cls_label = labels[key];
+            LOG(INFO) << "Adding Region Node";
             std::shared_ptr<Node> n = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
             nodes_[uid] = n;
         }

@@ -108,110 +108,6 @@ void StitchingProcessor::checkRegionNodes(const std::shared_ptr<Graph>& graph)
     }
 }
 
-void StitchingProcessor::regionRegistrationViaBackProjection(const cv::Mat& coords, const GraphWithPose& input)
-{
-    GraphingInput imagery = input.analysis;
-    size_t input_size = imagery.getSize();
-    // find max and min utm coords
-    std::vector<cv::Mat> channels;
-    cv::split(coords, channels);
-
-    double min_easting, max_easting;
-    cv::minMaxLoc(channels[0], &min_easting, &max_easting);
-
-    double min_northing, max_northing;
-    cv::minMaxLoc(channels[1], &min_northing, &max_northing);
-    // back project existing nodes into the image
-    std::vector<cv::Point2f> back_proj_pixels;
-    std::vector<cv::Point> back_proj_ipixels;
-    std::unordered_map<uint64_t, cv::Point> pixel_id_map;
-    for (const std::shared_ptr<Node> existing : scene_graph_->getRegionNodes()) {
-        UTMPoint utm = existing->getUtmCoordinate();
-        if (utm.easting >= min_easting && utm.easting <= max_easting && utm.northing >= min_northing && utm.northing <= max_northing) {
-            BufferSearchCoordinates searcher(coords, utm);
-            std::pair<int, int> c = searcher.search(); 
-            cv::Point ipixel(c.first, c.second);
-            // update pixel coordinate to be in the current image
-            existing->setPixelCoordinate(ipixel);
-            cv::Point2f pixel(static_cast<float>(c.first), static_cast<float>(c.second));
-            if (c.first == -1 || c.second == -1) continue;
-            back_proj_pixels.push_back(pixel);
-            pixel_id_map[existing->getNodeID()] = ipixel;
-            back_proj_ipixels.push_back(ipixel);
-        }
-    }
-   
-    // cluster the new nodes with the old nodes;
-    int region_count = 0;
-    cv::Mat region_mask = cv::Mat::zeros(imagery.image.size(), CV_8UC1); 
-    for (size_t i = 0; i < input_size; ++i) {
-        if (imagery.map[i].level == GraphLevel::REGION) {
-            cv::bitwise_or(region_mask, imagery.map[i].mask, region_mask);
-            region_count++;
-        }
-    }
-    // if there are no regions detected 
-    if (region_count == 0) return;
-    int k = 20;
-    int new_k = std::max(0, k - static_cast<int>(back_proj_pixels.size())); 
-    // if this is 0 we're not adding any new nodes... we can exit
-    if (new_k == 0) return;
-    
-    KMeansOutput output = kmeans_.nFixedLloyds(region_mask, back_proj_pixels, new_k, 100, 1e-4);
-    AdjacencyOutput adj = kmeans_.connectRegions(output.points, output.voronoi, k); 
-
-    std::map<uchar, cv::Point> centers;
-    std::unordered_map<uchar, size_t> labels;
-    for (const cv::Point& p : output.centroids) {
-        uchar region_id = output.voronoi.at<uchar>(p);
-        centers[region_id] = p;
-        for (size_t j = 0; j < input_size; ++j) { 
-            if (imagery.map[j].mask.at<uchar>(p) == 1) {
-                labels[region_id] = imagery.map[j].uid;
-                break;
-            }
-        }
-    }
-
-    // add the new nodes to the graph
-    std::map<uchar, uint64_t> uid_map;
-    for (const auto& [key, vals] : adj.adjacency) {
-        if (centers.find(key) != centers.end()) {
-            uint64_t uid = UIDGenerator::getNextUID();
-            uid_map[key] = uid;
-            cv::Point pixel_coord = centers[key];
-            size_t cls_label = labels[key];
-            std::shared_ptr<Node> node = std::make_shared<Node>(uid, cls_label, GraphLevel::REGION, pixel_coord);
-            localizeNode(node, input.odom.getPose<Eigen::Isometry3d>());
-            
-            scene_graph_->addNode(node);
-        }
-    }
-
-    // add existing nodes to centers and uid map
-    for (const auto& [nid, p] : pixel_id_map) {
-        uchar region_id = output.voronoi.at<uchar>(p);
-        centers[region_id] = p;
-        uid_map[region_id] = nid;
-    }
-
-    // add the edges
-    for (const auto& [key, vals] : adj.adjacency) {
-        for (const uchar& v : vals) {
-            if (uid_map.find(key) != uid_map.end() && uid_map.find(v) != uid_map.end()) {
-                uint64_t parent_id = uid_map[key];
-                uint64_t child_id = uid_map[v];
-
-                std::shared_ptr<Node> parent_node = scene_graph_->getNode(parent_id);
-                std::shared_ptr<Node> child_node = scene_graph_->getNode(child_id);
-                scene_graph_->addEdge(parent_node, child_node);
-                std::shared_ptr<Edge> new_edge = scene_graph_->getEdge(parent_id, child_id);
-                bool result = Traversability::scoreEdge(new_edge, imagery);
-                if (!result) scene_graph_->pruneEdge(new_edge);
-            }
-        }
-    }
-}
 
 void StitchingProcessor::addNodeByMax(const GraphWithPose& imagery)
 {
@@ -220,25 +116,21 @@ void StitchingProcessor::addNodeByMax(const GraphWithPose& imagery)
     size_t input_size = input.getSize();
     for (size_t i = 0; i < input_size; ++i) {
         if (input.map[i].level == GraphLevel::REGION) {
-            double minVal, maxVal;
-            cv::Point minLoc, maxLoc;
-            cv::Mat logits = input.map[i].mask;
-            cv::minMaxLoc(logits, &minVal, &maxVal, &minLoc, &maxLoc);
+            cv::Mat mask = input.map[i].mask;
 
-            KMeansOutput output = kmeans_.cluster(input.map[i].mask, 1);
+            cv::Mat dist;
+            cv::distanceTransform(mask, dist, cv::DIST_L2, cv::DIST_MASK_PRECISE);
+
+            // Find the point with maximum distance
+            double maxVal;
+            cv::Point maxLoc;
+            cv::minMaxLoc(dist, nullptr, &maxVal, nullptr, &maxLoc);
 
             uint64_t uid = UIDGenerator::getNextUID();
-            cv::Point zero(0,0);
-            if (maxLoc == zero) {
-                LOG(INFO) << "[DEBUG] Max Logit was at (0,0)";
-            } else {
-                if (cv::norm(maxLoc - cv::Point(256, 192)) < 100) {
-                    std::shared_ptr<Node> node = std::make_shared<Node>(uid, input.map[i].uid, GraphLevel::REGION, maxLoc);
+            std::shared_ptr<Node> node = std::make_shared<Node>(uid, input.map[i].uid, GraphLevel::REGION, maxLoc);
 
-                    localizeNode(node, input.odom.getPose<Eigen::Isometry3d>());
-                    scene_graph_->addNode(node);
-                }
-            }
+            localizeNode(node, input.odom.getPose<Eigen::Isometry3d>());
+            scene_graph_->addNode(node);
         }
     }
 }
@@ -271,9 +163,9 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, c
             Eigen::Vector2d global(utm.easting, utm.northing);
             int64_t stamp = odom.getTimestamp();
             glider_->addLandmark(stamp, nid, odom, global, cam, center, fx);
-            Eigen::Vector3d filtered_pos = glider_->getLandmark(nid);
+            Glider::PointWithCovariance filtered_pos = glider_->getLandmark(nid);
             
-            closest_node->setUtmCoordinate(filtered_pos(0), filtered_pos(1));
+            closest_node->setUtmCoordinate(filtered_pos.x(), filtered_pos.y());
         } else if (closest_node) {
             uint64_t nid = proposed->getNodeID();
             UTMPoint utm = proposed->getUtmCoordinate();
@@ -285,9 +177,9 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, c
             int64_t stamp = odom.getTimestamp();
             
             glider_->addLandmark(stamp, nid, odom, global, cam, center, fx);
-            Eigen::Vector3d filtered_pos = glider_->getLandmark(nid);
+            Glider::PointWithCovariance filtered_pos = glider_->getLandmark(nid);
             
-            proposed->setUtmCoordinate(filtered_pos(0), filtered_pos(1));
+            proposed->setUtmCoordinate(filtered_pos.x(), filtered_pos.y());
             
             scene_graph_->addNode(proposed);
         }

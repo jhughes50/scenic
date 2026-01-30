@@ -33,6 +33,7 @@
 #include "odometry.hpp"
 #include "yaw_factor.hpp"
 #include "between_yaw_factor.hpp"
+#include "point.hpp"
 #include "glider/utils/parameters.hpp"
 #include "glider/utils/time.hpp"
 
@@ -117,7 +118,7 @@ class FactorManager
          *  @return 6-by-bias_num_measurements matrix */
         Eigen::MatrixXd getBiasEstimate() const;
 
-        Eigen::Vector3d getLandmarkPoint(size_t landmark_id) const;
+        PointWithCovariance getLandmarkPoint(size_t landmark_id) const;
         /*! @brief gets the current pim object 
          *  @return the current pim object dereferenced */
         gtsam::PreintegratedCombinedMeasurements getPim() const;
@@ -223,6 +224,7 @@ class FactorManager
         // landmark varaibles
         std::set<size_t> active_landmarks_;
         std::set<size_t> optimized_landmarks_;
+        std::unordered_map<gtsam::Key, Eigen::Matrix3d> initial_landmark_cov_;
 
         // composed imu orient 
         double prev_yaw_;
