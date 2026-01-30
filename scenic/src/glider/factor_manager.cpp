@@ -341,7 +341,9 @@ void FactorManager::addLandmarkFactor(int64_t timestamp, size_t landmark_id, con
     if (active_landmarks_.find(landmark_id) == active_landmarks_.end()) 
     {
         initials_.insert(landmark_key, meas);
+        initial_landmark_cov_.insert({landmark_key, cov});
         active_landmarks_.insert(landmark_id);
+
         if (params_.smooth) 
         {
             double time = nanosecIntToDouble(timestamp);
@@ -352,13 +354,15 @@ void FactorManager::addLandmarkFactor(int64_t timestamp, size_t landmark_id, con
     graph_.add(gtsam::PriorFactor<gtsam::Point3>(landmark_key, meas, noise));
 }
 
-Eigen::Vector3d FactorManager::getLandmarkPoint(size_t landmark_id) const
+PointWithCovariance FactorManager::getLandmarkPoint(size_t landmark_id) const
 {
+    //todo this needs to be wrapped in a try catch statement!!
+    PointWithCovariance output;
     gtsam::Key landmark_key = L(landmark_id);
     if(active_landmarks_.find(landmark_id) == active_landmarks_.end()) 
     {
-        LOG(ERROR) << "[GLIDER] Trying to optimize for landmark that does not exist: " << landmark_id;
-        return Eigen::Vector3d::Zero();
+        LOG(ERROR) << "[GLIDER] Trying to find landmark that does not exist: " << landmark_id;
+        return output;
     }
     
     std::lock_guard<std::mutex> lock(graph_mutex_);
@@ -367,21 +371,27 @@ Eigen::Vector3d FactorManager::getLandmarkPoint(size_t landmark_id) const
         if (params_.smooth)
         {
             gtsam::Point3 point = smoother_.calculateEstimate<gtsam::Point3>(landmark_key);
-            return Eigen::Vector3d(point.x(), point.y(), point.z());
+            Eigen::Matrix3d cov = smoother_.marginalCovariance(landmark_key);
+            output = PointWithCovariance(point, cov);
+            return output;
         }
         else
         {
             gtsam::Point3 point = isam_.calculateEstimate<gtsam::Point3>(landmark_key);
-            return Eigen::Vector3d(point.x(), point.y(), point.z());
+            Eigen::Matrix3d cov = isam_.marginalCovariance(landmark_key);
+            output = PointWithCovariance(point, cov);
+            return output;
         }
     }
     
     if (initials_.exists(landmark_key))
     {
         gtsam::Point3 point = initials_.at<gtsam::Point3>(landmark_key);
-        return Eigen::Vector3d(point.x(), point.y(), point.z());
+        Eigen::Matrix3d cov = initial_landmark_cov_.at(landmark_key);
+        output = PointWithCovariance(point, cov);
+        return output;
     }
-    return Eigen::Vector3d(0, 0, 0);
+    return output;
 }
 
 Odometry FactorManager::predict(int64_t timestamp)
@@ -457,6 +467,7 @@ OdometryWithCovariance FactorManager::runner(int64_t timestamp)
     pim_->resetIntegration();
     // reset the graph
     initials_.clear();
+    initial_landmark_cov_.clear();
     smoother_timestamps_.clear();
     graph_.resize(0);
 

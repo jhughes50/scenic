@@ -174,7 +174,7 @@ void Glider::addLandmark(int64_t timestamp, uint64_t nid, const Odometry& pose, 
     factor_manager_.addLandmarkFactor(timestamp, landmark_id, meas, cov);
 }
 
-Eigen::Vector3d Glider::getLandmark(uint64_t nid)
+PointWithCovariance Glider::getLandmark(uint64_t nid)
 {
     size_t lid = static_cast<size_t>(nid);
     return factor_manager_.getLandmarkPoint(lid);

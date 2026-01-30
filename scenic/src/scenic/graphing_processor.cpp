@@ -29,15 +29,15 @@ void GraphingProcessor::processBuffer()
             Graph graph = region_graph + object_graph;
             int pid = raw_input->pid;
             graph.setProcessID(pid);
-            if (region_graph.isEmpty()) {
-                LOG(WARNING) << "[SCENIC] Region Graph is Empty at PID" << pid;
-                continue;
-            } else if (object_graph.isEmpty()) {
-                LOG(WARNING) << "[SCENIC] Object Graph is Empty at PID" << pid;
-            } 
+            //if (region_graph.isEmpty()) {
+            //    LOG(WARNING) << "[SCENIC] Region Graph is Empty at PID" << pid;
+            //    continue;
+            //} else if (object_graph.isEmpty()) {
+            //    LOG(WARNING) << "[SCENIC] Object Graph is Empty at PID" << pid;
+            //} 
             //    graph = region_graph + object_graph;
             //}
-            Traversability::addTraversability(graph, raw_input);
+            //Traversability::addTraversability(graph, raw_input);
             std::shared_ptr p_graph = std::make_shared<GraphWithPose>(graph, raw_input->odom, *raw_input);
 
             if (outputCallback) outputCallback(p_graph);

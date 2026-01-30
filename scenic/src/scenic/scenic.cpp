@@ -210,11 +210,10 @@ Glider::Odometry Scenic::getVisualOdometry() const
 cv::Mat Scenic::getGraphImage() const
 {
     cv::Mat display;
-    //if (image_graph_) {
-    //    int pid = graph_->getProcessID();
-    //    cv::Mat img = pid_img_map_.get(pid);
-    //    display = Graph::DrawGraph(image_graph_, img);
-    //}
+    if (image_graph_) {
+        cv::Mat img = getMaskOverlay();
+        display = Graph::DrawGraph(image_graph_, img);
+    }
     return display;
 }
 

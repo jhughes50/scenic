@@ -60,6 +60,7 @@ add_library(glider SHARED
     src/glider/differential_gps.cpp
     src/glider/odometry.cpp
     src/glider/odometry_with_covariance.cpp
+    src/glider/point.cpp
     src/glider/factor_manager.cpp
     src/glider/glider.cpp
 )
