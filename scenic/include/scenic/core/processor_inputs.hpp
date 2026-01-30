@@ -156,37 +156,9 @@ struct BaseInput
     }
 };
 
-struct SegmentationInput : public BaseInput
-{
-    TextMap texts;
-
-    SegmentationInput() = default;
-    SegmentationInput(int id, const cv::Mat& img, const Glider::Odometry& odm, const TextMap& text)
-    {
-        pid = id;
-        image = img;
-        odom = odm;
-        texts = text;
-    }
-
-    SegmentationInput(int id, const cv::Mat& img, const TextMap& text)
-    {
-        pid = id;
-        image = img;
-        texts = text;
-    }
-};
-
 struct GraphingInput : public BaseInput
 {
     GraphingInput() = default;
-
-    GraphingInput(std::unique_ptr<SegmentationInput> input)
-    { 
-        pid = input->pid;
-        odom = input->odom;
-        image = input->image;
-    }
 
     size_t getSize() const
     {

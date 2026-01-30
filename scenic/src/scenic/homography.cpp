@@ -1,12 +1,19 @@
+/*!
+* @Author Jason Hughes
+* @Date January 2026
+*
+* @About compute the homograph between two 
+* subsequent frames
+*/
+
+
 #include "scenic/core/homography.hpp"
 #include <opencv2/features2d.hpp>
 
-namespace homography {
+namespace Scenic 
+{
 
-std::optional<HomographyResult> compute_homography(
-    const cv::Mat& img1,
-    const cv::Mat& img2,
-    const HomographyParams& params)
+std::optional<HomographyResult> computeHomography(const cv::Mat& img1, const cv::Mat& img2, const HomographyParams& params)
 {
     if (img1.empty() || img2.empty()) {
         return std::nullopt;
@@ -104,21 +111,10 @@ std::optional<HomographyResult> compute_homography(
     return HomographyResult{H, inliers, avg_error};
 }
 
-std::optional<HomographyResult> compute_homography(
-    const std::string& path1,
-    const std::string& path2,
-    const HomographyParams& params)
-{
-    cv::Mat img1 = cv::imread(path1);
-    cv::Mat img2 = cv::imread(path2);
-    return compute_homography(img1, img2, params);
-}
-
-cv::Mat warp_image(const cv::Mat& img, const cv::Mat& H, cv::Size output_size)
+cv::Mat warpImage(const cv::Mat& img, const cv::Mat& H, cv::Size output_size)
 {
     cv::Mat warped;
     cv::warpPerspective(img, warped, H, output_size);
     return warped;
 }
-
-} // namespace homography
+} // namespace Scenic

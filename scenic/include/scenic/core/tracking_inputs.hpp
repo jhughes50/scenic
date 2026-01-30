@@ -18,15 +18,7 @@ struct ImageStamped
     Glider::Odometry odom;
     double stampd;
     int64_t stampi;
-};
-struct TrackingInput
-{
-    int pid;
-    ImageStamped previous;
-    ImageStamped current;
 
-    TrackingInput() = default;
-};
 
 struct TrackingOutput
 {

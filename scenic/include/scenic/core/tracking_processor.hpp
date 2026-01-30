@@ -9,31 +9,37 @@
 
 #include <glog/logging.h>
 
-#include "homography.hpp"
+#include "scenic/core/homography.hpp"
 #include "scenic/core/rectifier.hpp"
 #include "scenic/core/threaded_processor.hpp"
 #include "scenic/core/tracking_processor.hpp"
-#include "scenic/core/processor_inputs.hpp"
-#include "scenic/core/tracking_inputs.hpp"
+#include "scenic/core/database.hpp"
 
 namespace Scenic 
 {
+
+struct TrackingInput
+{
+    int pid;
+    cv::Mat previous;
+    cv::Mat current;
+
+    TrackingInput() = default;
+};
+
 class TrackingProcessor : public ThreadedProcessor<TrackingInput>
 {
     public:
         TrackingProcessor() = default;
-        TrackingProcessor(size_t capacity, const std::string& rpath, const std::string& ppath);
+        TrackingProcessor(size_t capacity, const std::string& rpath, std::shared_ptr<ScenicDatabase> db);
 
-        void setCallback(std::function<void(std::shared_ptr<homography::HomographyResult>)> callback);
+        void setCallback(std::function<void(int)> callback);
 
     private:
         void processBuffer() override;
-        std::function<void(std::shared_ptr<homography::HomographyResult>)> outputCallback;
-
+        std::function<void(int)> outputCallback;
+    
+        std::shared_ptr<ScenicDatabase> database_;
         Rectifier rectifier_;
-
-        int bootstrap_fail_count_{0};
-        int tracking_fail_count_{0};
-        double qw_{1.0}, qx_{0.0}, qy_{0.0}, qz_{0.0};
 };
 }
