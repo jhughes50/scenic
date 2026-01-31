@@ -13,6 +13,7 @@
 #include <tbb/blocked_range2d.h>
 #include <tbb/parallel_for.h>
 
+#include "scenic/graphing/node.hpp"
 #include "scenic/utils/transforms.hpp"
 
 namespace Scenic
@@ -32,4 +33,6 @@ struct BufferLocalization
     void operator()(const tbb::blocked_range2d<int>& range);
     void join(const BufferLocalization& other);
 };
+
+void localizeNode(std::shared_ptr<Node>& node, const Eigen::Isometry3d& pose, cv::Mat K, cv::Mat D);
 }

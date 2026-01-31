@@ -46,3 +46,27 @@ void BufferLocalization::operator()(const tbb::blocked_range2d<int>& r)
 }
 
 void BufferLocalization::join(const BufferLocalization& other) { }
+
+void localizeNode(std::shared_ptr<Node>& node, const Eigen::Isometry3d& pose, cv::Mat K, cv::Mat D)
+{
+    Transforms transforms;
+    cv::Point px = node->getPixelCoordinate();
+    cv::Point2d pixel(static_cast<double>(px.x), static_cast<double>(px.y));
+    std::vector<cv::Point2d> pixel_vec = {pixel};
+    
+    std::vector<cv::Point2d> undistorted;
+    cv::undistortPoints(pixel_vec, undistorted, K, D);
+
+    Eigen::Vector3d ray_cam(undistorted[0].x, undistorted[0].y, 1.0);
+    Eigen::Vector3d ray_imu = transforms.T_imu_cam.linear() * ray_cam;
+    Eigen::Vector3d ray_world = pose.linear() * ray_imu;
+
+    double scale = -pose.translation().z() / ray_world(2);
+
+    ray_imu = scale * ray_imu;
+    Eigen::Vector3d pixel_imu = transforms.T_imu_cam.translation() + ray_imu;
+    Eigen::Vector3d pixel_world = pose.translation() + (pose.linear() * pixel_imu);
+   
+    node->setUtmCoordinate(pixel_world(0), pixel_world(1));
+}
+

@@ -32,7 +32,7 @@ ScenicOrchestrator::ScenicOrchestrator(size_t capacity, const std::string& model
     //    this->imageGraphCallback(go);
     //});
 
-    stitching_processor_ = std::make_unique<StitchingProcessor>(capacity, params_path+"blackfly-5mm.yaml", glider_);
+    stitching_processor_ = std::make_unique<StitchingProcessor>(capacity, params_path+"blackfly-5mm.yaml", glider_, database_);
     stitching_processor_->setCallback([this](std::shared_ptr<Graph> go) {
         this->graphCallback(go);
     });
@@ -162,6 +162,7 @@ void ScenicOrchestrator::trackingCallback(int pid)
     if (pid > 0) {
         tracking_initialized_=true;
         LOG(INFO) << "[SCENIC] [TRACKING] Reprojection Error: " << database_->at<ScenicType::Reprojection>(pid);
+        if (!stitching_processor_->contains(pid, Access::LOCK)) stitching_processor_->push(pid);
     } else {
         LOG(INFO) << "[SCENIC] [TRACKING] Waiting for Tracking to initialize";
     }
@@ -170,14 +171,14 @@ void ScenicOrchestrator::trackingCallback(int pid)
 void ScenicOrchestrator::segmentationCallback(int pid)
 {
     LOG(INFO) << "[SCENIC] [SEGMENTATION] Queue Size: " << seg_processor_->size(Access::UNLOCK);
-    //graph_processor_->push(*so);
+    if (!stitching_processor_->contains(pid, Access::LOCK)) stitching_processor_->push(pid);
 }
 
 void ScenicOrchestrator::imageGraphCallback(std::shared_ptr<GraphWithPose> go)
 {
     LOG(INFO) << "[SCENIC] [GRAPHING] Queue Size: " << graph_processor_->size(Access::UNLOCK);
     image_graph_ = go->graph;
-    stitching_processor_->push(*go);
+    //stitching_processor_->push(*go);
 }
 
 void ScenicOrchestrator::graphCallback(std::shared_ptr<Graph> go)

@@ -45,7 +45,8 @@ class ProcessBuffer
         F at(size_t idx, Access a = Access::LOCK) const;
         // get an immutable reference at index
         const F& referenceAt(size_t idx, Access a = Access::LOCK) const;
-
+        // does the buffer contain an element
+        bool contains(F frame, Access a = Access::LOCK) const;
 
         size_t size(Access a = Access::LOCK) const;
         size_t capacity() const;
@@ -81,7 +82,8 @@ ProcessBuffer<F>::ProcessBuffer(size_t capacity) : buffer_(capacity)
 template <typename F>
 void ProcessBuffer<F>::push(const F frame, Access a)
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     buffer_[tail_] = std::make_unique<F>(frame);
     tail_ = (tail_ + 1) % capacity_;
@@ -99,7 +101,8 @@ void ProcessBuffer<F>::push(const F frame, Access a)
 template <typename F>
 std::unique_ptr<F> ProcessBuffer<F>::pop(Access a)
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     if (size_ == 0) {
         throw std::runtime_error("Buffer is empty");
@@ -116,7 +119,8 @@ std::unique_ptr<F> ProcessBuffer<F>::pop(Access a)
 template <typename F>
 void ProcessBuffer<F>::del(Access a)
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     if (size_ == 0) {
         throw std::runtime_error("Buffer is empty");
@@ -131,7 +135,8 @@ void ProcessBuffer<F>::del(Access a)
 template <typename F>
 F ProcessBuffer<F>::front(Access a) const
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     if (size_ == 0) {
         throw std::runtime_error("Buffer is empty");
@@ -143,7 +148,8 @@ F ProcessBuffer<F>::front(Access a) const
 template <typename F>
 F ProcessBuffer<F>::back(Access a) const
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     if (size_ == 0) {
         throw std::runtime_error("Buffer is empty");
@@ -157,7 +163,8 @@ F ProcessBuffer<F>::back(Access a) const
 template <typename F>
 F ProcessBuffer<F>::at(size_t index, Access a) const
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     if (index >= size_) throw std::out_of_range("Index out of range");
 
@@ -169,7 +176,8 @@ F ProcessBuffer<F>::at(size_t index, Access a) const
 template <typename F>
 const F& ProcessBuffer<F>::referenceAt(size_t index, Access a) const
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     if (index >= size_) throw std::out_of_range("Index out of range");
 
@@ -181,7 +189,9 @@ const F& ProcessBuffer<F>::referenceAt(size_t index, Access a) const
 template <typename F>
 size_t ProcessBuffer<F>::size(Access a) const
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
+
     return size_;
 }
 
@@ -194,21 +204,26 @@ size_t ProcessBuffer<F>::capacity() const
 template <typename F>
 bool ProcessBuffer<F>::empty(Access a) const
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
+    
     return size_ == 0;
 }
 
 template <typename F>
 bool ProcessBuffer<F>::full(Access a) const
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
+   
     return size_ == capacity_;
 }
 
 template <typename F>
 void ProcessBuffer<F>::clear(Access a)
 {
-    if (a == Access::LOCK) std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
 
     for (size_t i = 0; i < capacity_; ++i) {
         buffer_[i] = nullptr;
@@ -216,6 +231,20 @@ void ProcessBuffer<F>::clear(Access a)
     head_ = 0;
     tail_ = 0;
     size_ = 0;
+}
+
+template <typename F>
+bool ProcessBuffer<F>::contains(F frame, Access a) const
+{
+    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    if (a == Access::LOCK) lock.lock();
+    
+    auto it = std::find_if(buffer_.begin(), buffer_.end(),
+        [&frame](const auto& ptr) {
+            return ptr && *ptr == frame;
+        });
+    
+    return it != buffer_.end();
 }
 }
 

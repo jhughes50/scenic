@@ -13,68 +13,16 @@
 
 using namespace Scenic;
 
-StitchingProcessor::StitchingProcessor(size_t capacity, const std::string& rect_path, std::shared_ptr<Glider::Glider>& glider) : ThreadedProcessor(capacity)
+StitchingProcessor::StitchingProcessor(size_t capacity, const std::string& rect_path, std::shared_ptr<Glider::Glider>& glider, std::shared_ptr<ScenicDatabase> db) : ThreadedProcessor(capacity)
 {
     rectifier_ = Rectifier::Load(rect_path, 4);
     glider_ = glider;
+    database_ = db;
 }
 
 void StitchingProcessor::setCallback(std::function<void(std::shared_ptr<Graph>)> callback)
 {
     outputCallback = callback;
-}
-
-void StitchingProcessor::localizeNodes(std::shared_ptr<Graph>& graph, const Eigen::Isometry3d& pose)
-{
-    cv::Mat K = rectifier_.getIntrinsics<cv::Mat>();
-    cv::Mat D = rectifier_.getDistortion<cv::Mat>();
-    for (auto& [key, node] : graph->getNodes()) {
-        cv::Point px = node->getPixelCoordinate();
-        cv::Point2d pixel(static_cast<double>(px.x), static_cast<double>(px.y));
-        std::vector<cv::Point2d> pixel_vec = {pixel};
-        
-        std::vector<cv::Point2d> undistorted;
-        cv::undistortPoints(pixel_vec, undistorted, K, D);
-
-        Eigen::Vector3d ray_cam(undistorted[0].x, undistorted[0].y, 1.0);
-        Eigen::Vector3d ray_imu = transforms_.T_imu_cam.linear() * ray_cam;
-        Eigen::Vector3d ray_world = pose.linear() * ray_imu;
-
-        double scale = -pose.translation().z() / ray_world(2);
-
-        ray_imu = scale * ray_imu;
-        Eigen::Vector3d pixel_imu = transforms_.T_imu_cam.translation() + ray_imu;
-        Eigen::Vector3d pixel_world = pose.translation() + (pose.linear() * pixel_imu);
-       
-        node->setUtmCoordinate(pixel_world(0), pixel_world(1));
-        //Glider::geodetics::UTMtoLL(pixel_world(1), pixel_world(0), '18s'
-        // TODO set LatLon Point
-    }
-}
-
-void StitchingProcessor::localizeNode(std::shared_ptr<Node>& node, const Eigen::Isometry3d& pose)
-{ 
-    cv::Mat K = rectifier_.getIntrinsics<cv::Mat>();
-    cv::Mat D = rectifier_.getDistortion<cv::Mat>();
-    
-    cv::Point px = node->getPixelCoordinate();
-    cv::Point2d pixel(static_cast<double>(px.x), static_cast<double>(px.y));
-    std::vector<cv::Point2d> pixel_vec = {pixel};
-    
-    std::vector<cv::Point2d> undistorted;
-    cv::undistortPoints(pixel_vec, undistorted, K, D);
-
-    Eigen::Vector3d ray_cam(undistorted[0].x, undistorted[0].y, 1.0);
-    Eigen::Vector3d ray_imu = transforms_.T_imu_cam.linear() * ray_cam;
-    Eigen::Vector3d ray_world = pose.linear() * ray_imu;
-
-    double scale = -pose.translation().z() / ray_world(2);
-
-    ray_imu = scale * ray_imu;
-    Eigen::Vector3d pixel_imu = transforms_.T_imu_cam.translation() + ray_imu;
-    Eigen::Vector3d pixel_world = pose.translation() + (pose.linear() * pixel_imu);
-   
-    node->setUtmCoordinate(pixel_world(0), pixel_world(1));
 }
 
 void StitchingProcessor::checkRegionNodes(const std::shared_ptr<Graph>& graph)
@@ -128,8 +76,9 @@ void StitchingProcessor::addNodeByMax(const GraphWithPose& imagery)
 
             uint64_t uid = UIDGenerator::getNextUID();
             std::shared_ptr<Node> node = std::make_shared<Node>(uid, input.map[i].uid, GraphLevel::REGION, maxLoc);
-
-            localizeNode(node, input.odom.getPose<Eigen::Isometry3d>());
+            cv::Mat K = rectifier_.getIntrinsics<cv::Mat>();
+            cv::Mat D = rectifier_.getDistortion<cv::Mat>();
+            localizeNode(node, input.odom.getPose<Eigen::Isometry3d>(), K, D);
             scene_graph_->addNode(node);
         }
     }
@@ -143,7 +92,7 @@ void StitchingProcessor::checkObjectNodes(const std::shared_ptr<Graph>& graph, c
     for (std::shared_ptr<Node> proposed : graph->getObjectNodes()) {
         double closest_dist = std::numeric_limits<double>::max();
         std::shared_ptr<Node> closest_node;
-        localizeNode(proposed, pose);
+        localizeNode(proposed, pose, rectifier_.getIntrinsics<cv::Mat>(), rectifier_.getDistortion<cv::Mat>());
         for (std::shared_ptr<Node> existing : scene_graph_->getObjectNodes()) {
             double distance = calculateDistance(proposed->getUtmCoordinate(), existing->getUtmCoordinate());
             if (distance < closest_dist) {
@@ -218,34 +167,44 @@ void StitchingProcessor::processBuffer()
     while (!isStopped()) {
         std::unique_lock<std::mutex> lock(mutex_);
         if (size(Access::PRELOCK) >= min_elem_) {
-            std::unique_ptr<GraphWithPose> raw_input = pop(Access::PRELOCK);
-            if (!scene_graph_) {
-                // graph is not initialized so we do that
-                // this should only happend the first entry,
-                // or if we need to reset for some reason
-                LOG(INFO) << "[SCENIC] Initializing Scene Graph";
-                scene_graph_ = raw_input->graph;
-                localizeNodes(scene_graph_, raw_input->odom.getPose<Eigen::Isometry3d>());
+            int pid = front(Access::PRELOCK);
+            if (database_->contains<ScenicType::Mask>(pid) && database_->contains<ScenicType::Homography>(pid)) {
+                del(Access::PRELOCK);
+                // do the mapping here
+
             } else {
-                // localize points in utm frame
-                cv::Mat coords = cv::Mat::zeros(384, 512, CV_64FC2);
-                cv::Mat K = rectifier_.getIntrinsics<cv::Mat>();
-                cv::Mat D = rectifier_.getDistortion<cv::Mat>();
-
-                std::shared_ptr<Graph> graph = raw_input->graph;
-                Eigen::Isometry3d pose = raw_input->odom.getPose<Eigen::Isometry3d>();
-                
-                BufferLocalization localize_image(coords, K, D, pose);
-                int r = coords.rows;
-                int c = coords.cols;
-                tbb::parallel_reduce(tbb::blocked_range2d<int>(0, r, 0, c), localize_image);
-
-                //regionRegistrationViaBackProjection(coords, *raw_input);  
-                addNodeByMax(*raw_input);
-                checkObjectNodes(graph, raw_input->odom);
-                scene_graph_->setProcessID(graph->getProcessID());
-            if (scene_graph_) outputCallback(scene_graph_);
+                LOG(INFO) << "[SCENIC] [STITCHING] Waiting For Processors";
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
             }
+
+            //if (!scene_graph_) {
+            //    // graph is not initialized so we do that
+            //    // this should only happend the first entry,
+            //    // or if we need to reset for some reason
+            //    LOG(INFO) << "[SCENIC] Initializing Scene Graph";
+            //    scene_graph_ = raw_input->graph;
+            //    localizeNodes(scene_graph_, raw_input->odom.getPose<Eigen::Isometry3d>());
+            //} else {
+            //    // localize points in utm frame
+            //    cv::Mat coords = cv::Mat::zeros(384, 512, CV_64FC2);
+            //    cv::Mat K = rectifier_.getIntrinsics<cv::Mat>();
+            //    cv::Mat D = rectifier_.getDistortion<cv::Mat>();
+
+            //    std::shared_ptr<Graph> graph = raw_input->graph;
+            //    Eigen::Isometry3d pose = raw_input->odom.getPose<Eigen::Isometry3d>();
+            //    
+            //    BufferLocalization localize_image(coords, K, D, pose);
+            //    int r = coords.rows;
+            //    int c = coords.cols;
+            //    tbb::parallel_reduce(tbb::blocked_range2d<int>(0, r, 0, c), localize_image);
+
+            //    //regionRegistrationViaBackProjection(coords, *raw_input);  
+            //    addNodeByMax(*raw_input);
+            //    checkObjectNodes(graph, raw_input->odom);
+            //    scene_graph_->setProcessID(graph->getProcessID());
+            if (scene_graph_) outputCallback(scene_graph_);
+            
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
